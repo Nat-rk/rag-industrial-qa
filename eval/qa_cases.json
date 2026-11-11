@@ -1,0 +1,110 @@
+{
+  "说明": "QA 验收题：12 道文档里有答案 + 3 道文档里没有答案。pages 是权威父块所在页，用于自动核对“有没有检索到正确的页”；答案质量还需人工对照原文。",
+  "cases": [
+    {
+      "id": "Q01", "type": "文档明确答案",
+      "q": "What is the purpose of this Application Guide?",
+      "pages": [7],
+      "key": "1.1 Purpose：说明本指南给出推荐参数设置与说明，不含安装与操作说明",
+      "note": "父块 f237a1f1，p7，362 字"
+    },
+    {
+      "id": "Q03", "type": "文档明确答案",
+      "q": "What are the recommended commissioning steps for IMC?",
+      "pages": [34],
+      "key": "2.11.1 Commissioning Steps 的完整步骤（配置 LCP 状态视图等）",
+      "note": "父块 193bfe69，p34，573 字"
+    },
+    {
+      "id": "Q04", "type": "参数编号/选项值",
+      "q": "Which parameter selects Positioning or Synchronization mode, and what are the corresponding option values?",
+      "pages": [8],
+      "key": "1-00 Configuration Mode；[9] Positioning 与 [10] Synchronization",
+      "note": "父块 49966074，p8；注意不要混入 1-09 或控制字 8-10 的选项"
+    },
+    {
+      "id": "Q06", "type": "参数编号/选项值",
+      "q": "Which parameters set the master scale numerator and denominator for synchronization gear ratio?",
+      "pages": [11, 32],
+      "key": "3-22 Master Scale Numerator 与 3-23 Master Scale Denominator",
+      "note": "p11 定义句，p32 举例（196 / 1161）"
+    },
+    {
+      "id": "Q09", "type": "操作步骤/故障",
+      "q": "In the Forward or Reverse II with Home Sensor homing function, what happens when an end limit switch is found before the home sensor is detected, and what warning/alarm is shown if both end limits are found without detecting the home sensor?",
+      "pages": [23],
+      "key": "先反向继续找 home sensor；两端限位都到仍未找到 → 警告/报警 215 Start Fwd/Rev",
+      "note": "父块 69faf508，p23"
+    },
+    {
+      "id": "Q13", "type": "操作步骤/故障",
+      "q": "In the homing function using a home sensor and the encoder zero pulse (2.8.9), what value is written to the actual position when homing in reverse direction?",
+      "pages": [26],
+      "key": "反向时 16-06 Actual Position = 17-82.1 Home Position index 1（正向用 17-82.0）",
+      "note": "父块 2ff3c8a4，p26"
+    },
+    {
+      "id": "Q10", "type": "参数编号/选项值",
+      "q": "Which parameter selects the mode of operation, and which option activates the homing function?",
+      "pages": [17],
+      "key": "1-09 Modes of Operation；[6] Homing mode（再选 17-80 Homing Function）",
+      "note": "Table 6，p17"
+    },
+    {
+      "id": "Q20", "type": "相似表题/跨页表",
+      "q": "For the rotary positioning application, what are the 3-06 minimum position and 3-07 maximum position settings?",
+      "pages": [40],
+      "key": "3-06 = 0°，3-07 = 360°（Table 13）",
+      "note": "Table 14(p41)、Table 19(p49) 数值相同，属于相似表竞争但不影响正确性"
+    },
+    {
+      "id": "Q22", "type": "相似表题/跨页表",
+      "q": "In the CAM application controlled by fieldbus (Table 31), what master scale ratio is configured?",
+      "pages": [71],
+      "key": "Table 31：3-22 = 1、3-23 = 20，比例 1:20",
+      "note": "p71，Table 31"
+    },
+    {
+      "id": "Q19", "type": "多父块",
+      "q": "In the touch probe positioning application, what does parameter 3-21 define and what value is used?",
+      "pages": [44],
+      "key": "3-21 Touch Target = 500 mm",
+      "note": "Table 16，p44；同一节的图注块也提到 3-21"
+    },
+    {
+      "id": "Q16", "type": "精确数字/编号",
+      "q": "In scaling Example 2 (OneGearDrive ratio 989:70), which values are set for parameters 17-72 and 17-73?",
+      "pages": [31],
+      "key": "17-72 = 320 × 70 = 22400、17-73 = 989",
+      "note": "2.9.3 Example 2，p31，父块 c32c2495"
+    },
+    {
+      "id": "Q26", "type": "参数编号/选项值",
+      "q": "In the virtual master application, how many pulses per revolution is the master encoder configured for?",
+      "pages": [60],
+      "key": "5-70 Term 32/33 Pulses Per Revolution = 1024",
+      "note": "Table 27，p60，父块 e760bccf"
+    },
+    {
+      "id": "N01", "type": "资料不足",
+      "q": "What is the maximum ambient temperature allowed for the drive?",
+      "pages": [],
+      "key": "文档中完全没有 ambient temperature 相关内容 → 应明确拒答",
+      "note": "全库检索 ambient = 0 次"
+    },
+    {
+      "id": "N02", "type": "资料不足",
+      "q": "What is the warranty period for this drive?",
+      "pages": [],
+      "key": "文档中没有保修期 → 应明确拒答",
+      "note": "warranty / guarantee 均为 0 次"
+    },
+    {
+      "id": "N03", "type": "资料不足",
+      "q": "What is the default value of parameter 1-20?",
+      "pages": [],
+      "key": "参数 1-20 在文档中不存在 → 应说明没有该参数信息",
+      "note": "1-20 全库 0 次；相近的 1-00/1-01/1-09 有，属于诱导"
+    }
+  ]
+}

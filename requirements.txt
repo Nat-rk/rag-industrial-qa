@@ -1,0 +1,19 @@
+# 依赖依据：对 rag_qa_github 下全部 .py 做 AST 扫描得到的第三方 import，
+# 再用本机实际运行环境（Python 3.13.9）的已安装版本锁定。
+# 版本只做“锁定”，不是“最新版”；升级前请重跑 eval/run_cases.py 回归。
+
+# --- 检索与索引 ---
+llama-index-core==0.14.24            # TextNode / VectorStoreIndex / 回调等基础类型
+llama-index-retrievers-bm25==0.8.0   # BM25Retriever（方案 A 的词面召回）
+llama-index-embeddings-zhipuai==0.4.0  # ZhipuAIEmbedding（查询向量）
+chromadb==1.5.9                      # 向量库客户端（集合 dense_sentences_v1）
+bm25s==0.3.11                        # BM25 倒排实现；STOPWORDS_EN 也来自这里
+
+# --- HTTP ---
+requests==2.34.2                     # rerank / LLM 的 REST 调用
+
+# 说明：
+# 1) zhipuai、numpy、pydantic 等由上面几个包自动带入，代码没有直接 import，故不重复列出。
+# 2) PyMuPDF(fitz) 未被本项目引用：PDF 解析在更早的离线流水线里完成，
+#    本仓库只消费其产物（parents.json / units.json / docstore.json / chroma_db）。
+#    如果你要复现“从 PDF 到可检索数据”的完整链路，需要额外安装 pymupdf。

@@ -1,0 +1,51 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+
+# ---- 虚拟环境 ----
+.venv/
+venv/
+env/
+ENV/
+
+# ---- 密钥与本地配置 ----
+.env
+.env.*
+!.env.example
+*.pem
+
+# ---- 编辑器 / 系统 ----
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ---- 工具缓存 ----
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# ---- 日志 ----
+*.log
+
+# ---- 数据资产：技术手册、解析文本、切片、向量库 ----
+# 这些文件由上游流水线生成，体积大且含第三方文档内容，不纳入公开仓库
+chroma_db/
+storage/
+parents.json
+units.json
+docstore.json
+*.pdf
+data/
+
+# ---- 运行产物 ----
+# out/ 目录保留（脚本会写这里），但内容全部忽略
+out/*
+!out/.gitkeep
+
+# ---- 本地保留、不公开的材料 ----
+# 方案设计草稿、含本机路径与逐题正文分析的内部报告、历史运行结果
+_local/
