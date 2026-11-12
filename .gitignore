@@ -27,6 +27,7 @@ Thumbs.db
 .mypy_cache/
 .ruff_cache/
 .ipynb_checkpoints/
+tests/_tmp/
 
 # ---- 日志 ----
 *.log

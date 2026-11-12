@@ -1,0 +1,68 @@
+{
+  "_comment": "完全虚构的工业变频器手册片段，用于离线测试。设备名、参数号、页码均为编造，与任何真实厂商文档无关。",
+  "file_name": "sample_drive_manual.pdf",
+  "parents": [
+    {
+      "id": "pa01",
+      "page": 3,
+      "kind": "section",
+      "section": "1 Setup > 1.2 Selecting the Control Mode",
+      "text": "1 Setup > 1.2 Selecting the Control Mode\n\nThe control mode is selected in parameter 1-00 Control Mode. Option [9] activates the positioning function, option [10] activates the synchronization function. Do not confuse this parameter with parameter 8-10 Control Word Profile, which selects the meaning of the control word bits.",
+      "chars": 330
+    },
+    {
+      "id": "pa02",
+      "page": 4,
+      "kind": "table",
+      "section": "1 Setup > Table 1: Control Word Bits",
+      "text": "1 Setup > Table 1: Control Word Bits\n\nBit 0: Enable the drive.\nBit 1: Start the motor.\nBit 2: Reverse direction.\nBit 3: Reset an alarm.",
+      "chars": 140
+    },
+    {
+      "id": "pa03",
+      "page": 7,
+      "kind": "section",
+      "section": "2 Diagnostics > 2.1 Alarm Handling",
+      "text": "2 Diagnostics > 2.1 Alarm Handling\n\nAlarm A13 indicates an overcurrent fault. Reset the drive by pressing the reset key on the local control panel, or by writing 1 to bit 3 of the control word. If the alarm returns within one minute, the fault is still present.",
+      "chars": 260
+    },
+    {
+      "id": "pa04",
+      "page": 9,
+      "kind": "section",
+      "section": "3 Limits > 3.1 Ambient Conditions",
+      "text": "3 Limits > 3.1 Ambient Conditions\n\nThe operating temperature range is -10 to +50 degrees Celsius. Derate the drive above 40 degrees Celsius. The storage temperature range is -25 to +65 degrees Celsius.",
+      "chars": 210
+    }
+  ],
+  "units": [
+    {"id": "u01", "parent_id": "pa01", "page": 3, "junk": false, "chars": 120,
+     "text": "1 Setup > 1.2 Selecting the Control Mode\nThe control mode is selected in parameter 1-00 Control Mode."},
+    {"id": "u02", "parent_id": "pa01", "page": 3, "junk": false, "chars": 110,
+     "text": "1 Setup > 1.2 Selecting the Control Mode\nOption [9] activates the positioning function."},
+    {"id": "u03", "parent_id": "pa01", "page": 3, "junk": false, "chars": 110,
+     "text": "1 Setup > 1.2 Selecting the Control Mode\nOption [10] activates the synchronization function."},
+    {"id": "u04", "parent_id": "pa01", "page": 3, "junk": false, "chars": 150,
+     "text": "1 Setup > 1.2 Selecting the Control Mode\nParameter 8-10 Control Word Profile selects the meaning of the control word bits."},
+    {"id": "u05", "parent_id": "pa02", "page": 4, "junk": false, "chars": 60,
+     "text": "1 Setup > Table 1: Control Word Bits\nBit 0: Enable the drive."},
+    {"id": "u06", "parent_id": "pa02", "page": 4, "junk": false, "chars": 60,
+     "text": "1 Setup > Table 1: Control Word Bits\nBit 1: Start the motor."},
+    {"id": "u07", "parent_id": "pa02", "page": 4, "junk": false, "chars": 70,
+     "text": "1 Setup > Table 1: Control Word Bits\nBit 3: Reset an alarm."},
+    {"id": "u08", "parent_id": "pa03", "page": 7, "junk": false, "chars": 110,
+     "text": "2 Diagnostics > 2.1 Alarm Handling\nAlarm A13 indicates an overcurrent fault."},
+    {"id": "u09", "parent_id": "pa03", "page": 7, "junk": false, "chars": 140,
+     "text": "2 Diagnostics > 2.1 Alarm Handling\nReset the drive by pressing the reset key on the local control panel."},
+    {"id": "u10", "parent_id": "pa03", "page": 7, "junk": false, "chars": 130,
+     "text": "2 Diagnostics > 2.1 Alarm Handling\nIf the alarm returns within one minute, the fault is still present."},
+    {"id": "u11", "parent_id": "pa04", "page": 9, "junk": false, "chars": 90,
+     "text": "3 Limits > 3.1 Ambient Conditions\nThe operating temperature range is -10 to +50 degrees Celsius."},
+    {"id": "u12", "parent_id": "pa04", "page": 9, "junk": false, "chars": 90,
+     "text": "3 Limits > 3.1 Ambient Conditions\nDerate the drive above 40 degrees Celsius."},
+    {"id": "u13", "parent_id": "pa04", "page": 9, "junk": false, "chars": 100,
+     "text": "3 Limits > 3.1 Ambient Conditions\nThe storage temperature range is -25 to +65 degrees Celsius."},
+    {"id": "u14", "parent_id": "pa04", "page": 9, "junk": true, "chars": 20,
+     "text": "3 Limits > 3.1 Ambient Conditions\nFigure 4"}
+  ]
+}

@@ -36,7 +36,9 @@
 | LLM 答案生成 + 拒答约束 | `qa/generator.py` |
 | 引用映射与越界编号检查 | `qa/citation.py` |
 | 批量问答评测（15 题 × 2 策略） | `eval/run_cases.py` |
-| Reranker 故障注入与降级验证 | `eval/test_rerank_failure.py` |
+| 公开评测报告生成（脱敏 + 严格引用口径） | `eval/reports/build_public_report.py` |
+| 离线单元测试（47 项，不需要数据与 key） | `tests/` |
+| Reranker 故障注入与降级验证 | `eval/test_rerank_failure.py`（需真实数据与 API） |
 
 **未实现（不要当成已有能力）**
 
@@ -84,8 +86,18 @@
 ├── eval/
 │   ├── qa_cases.json        # 15 道验收题：12 道有答案 + 3 道资料不足
 │   ├── run_cases.py         # 批量问答，逐题落盘，可断点续跑
-│   ├── test_rerank_failure.py  # 5 类故障注入 + 正常对照
-│   └── compare_runs.py      # 两次结果逐题对比
+│   ├── test_rerank_failure.py  # 5 类故障注入 + 正常对照（需真实数据与 API）
+│   ├── compare_runs.py      # 两次结果逐题对比
+│   └── reports/             # 可公开的评测证据（脱敏，可直接看）
+│       ├── build_public_report.py   # 从历史 JSON 生成下面三份
+│       ├── evaluation.md            # 人读报告：口径、汇总、逐题、失败案例、局限
+│       ├── evaluation_details.csv   # 逐题明细（可自行重算指标）
+│       └── evaluation_summary.json  # 机器可读汇总
+├── tests/                   # 离线单元测试：不需要数据、不需要 key
+│   ├── fixtures/sample_device_docs.json   # 虚构手册片段（非真实文档）
+│   ├── test_citation.py / test_context.py / test_backfill.py
+│   ├── test_rrf.py / test_bm25.py / test_rerank_degrade.py
+│   └── test_pipeline.py / test_run_cases_scoring.py
 ├── docs/
 │   ├── 架构与模块说明.md      # 每个模块解决什么问题、改哪里
 │   └── 验收报告.md           # 评测方法、指标口径、结果、限制
@@ -118,10 +130,14 @@ python main.py "Which parameter selects Positioning or Synchronization mode?"
 python main.py "..." hybrid        # 换 Hybrid 策略
 python main.py                     # 交互模式
 
-# 5. 批量评测
+# 5. 批量评测（需要数据 + key，会产生费用）
 python eval/run_cases.py                       # 15 题 × 2 策略
 python eval/run_cases.py --ids Q04 N03 --modes bm25
 python eval/test_rerank_failure.py             # 故障注入（12 次）
+
+# 6. 离线自检（不需要数据、不需要 key、不联网）
+python -m unittest discover -s tests -t .      # 47 项，约 2 秒
+python eval/reports/build_public_report.py     # 从已有结果重新生成公开报告
 ```
 
 > `.env.example` 只是变量清单，本项目**不加载** `.env`。请用系统环境变量或 IDE 的运行配置。
@@ -174,18 +190,28 @@ export RAG_DATA_DIR=/path/to/your/data
 | 指标 | bm25 | hybrid |
 |---|---:|---:|
 | 有答案题：检索命中权威页 | 12/12 | 12/12 |
-| 有答案题：引用命中权威页 | 11/12 | 11/12 |
+| 有答案题：引用命中权威页（宽松，有交集） | 11/12 | 11/12 |
+| 有答案题：严格引用匹配（引用页集合完全相同） | 8/12 | 8/12 |
 | 资料不足题：正确拒答 | 3/3 | 3/3 |
 | 平均交付父块数 | 10.0 | 10.0 |
 | 平均耗时 | 24.3 s | 37.3 s |
 | 降级次数 / 生成失败 | 0 / 0 | 0 / 0 |
 
 - “检索命中”= 权威父块进了交付的前 10 块；“引用命中”= 答案里引用的 `[Source n]` 落到了权威页。**两者不是一回事**，不要混用。
-- Reranker 故障注入：连接异常 / 超时 / 500 / 429 / 空响应 5 类 × 2 策略 + 2 次正常对照，12/12 通过（降级后保序、页码映射正确、问答不中断）。
-- 唯一未命中的引用是 Q20：两张不同应用场景的表数值相同，答案取到了另一张。详见 `docs/验收报告.md`。
-- 本轮完整记录保存在 `_local/results/qa_results_v3.json`，按约定**不随仓库发布**（`_local/` 已 gitignore）。
+- “严格引用匹配”是更严的口径：引用页集合必须和权威页集合**相同**，两种策略都是 8/12。按策略看，BM25 没通过的是 Q04（多引 p16）、Q06（漏引 p32）、Q10（多引 p20/p36/p40）、Q20（引到同值但不同场景的 p49）；Hybrid 没通过的是 Q06、Q10（多引 p48/p56）、Q19（多引 p48）、Q20。逐题“多引/漏引了哪页”见公开报告第 5 节。
+- Reranker 故障注入：连接异常 / 超时 / 500 / 429 / 空响应 5 类 × 2 策略 + 2 次正常对照，12/12 通过。**它证明的是“降级逻辑可用”（保序、页码映射不丢、问答不中断、引用不越界），不证明降级后答案内容正确。**
+- 唯一未命中的引用是 Q20：两张不同应用场景的表数值相同，答案取到了另一张。详见 `eval/reports/evaluation.md` 第 5 节与 `docs/验收报告.md`。
 
-指标口径与逐题结果见 [`docs/验收报告.md`](docs/验收报告.md)。
+### 7.1 三类证据，不要混为一谈
+
+| 证据 | 位置 | 能证明 | 不能证明 |
+|---|---|---|---|
+| 历史评测（2026-11-06，15 题 × 2 策略） | `eval/reports/evaluation.md` / `.csv` / `.json` | 那一轮的检索、引用、拒答与耗时 | 当前代码在所有数据上的表现 |
+| 当前代码抽检（Q04 + Q20 × 2 策略，4 次） | 同上第 6 节 | 这 4 次的检索可复现（权威页 4/4 在交付里）；引用有运行间波动 | 30 行历史结果都来自当前 HEAD |
+| 离线单元测试（47 项，无网络/无 key） | `tests/` | 引用解析、上下文编号与截断、去重与自适应扩展、RRF 公式、降级路径、评测打分逻辑 | 真实召回质量与答案质量 |
+- 本轮完整记录（30 行原始 JSON，含模型原文与手册章节标题）按约定**不随仓库发布**；可公开的脱敏版本见 [`eval/reports/evaluation.md`](eval/reports/evaluation.md)（同目录还有逐题明细 CSV 与生成脚本，指标可逐项重算）。
+
+指标口径、逐题结果与已知失败案例见 [`eval/reports/evaluation.md`](eval/reports/evaluation.md) 与 [`docs/验收报告.md`](docs/验收报告.md)。
 
 ---
 
@@ -204,7 +230,7 @@ export RAG_DATA_DIR=/path/to/your/data
 
 ## 9. 已知限制
 
-1. **只验证过一份文档**（107 页手册），多文档/多领域未验证。
+1. **只验证过一份文档**（76 页手册），多文档/多领域未验证。
 2. **评测集 15 题，规模小**；其中 12 题来自更早的 27 题实验（9 dev + 3 test），可视为回归集，不能当作泛化能力的证据。
 3. **引用到“父块/页”粒度**，不是句子级；同一页多块时页码相同、块不同。
 4. **答案质量受 LLM 影响**：`glm-4.5-flash` 免费够用，复杂参数表偶有串行（Q04 案例）。

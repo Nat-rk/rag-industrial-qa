@@ -1,0 +1,1391 @@
+{
+  "meta": {
+    "source_file": "qa_results_v3.json",
+    "source_sha256": "f69a3fbe200b889d995a57c93d6166524acff7f1b894aec4e600b558ef66eb7e",
+    "source_rows": 30,
+    "question_count": 15,
+    "cases_file": "qa_cases.json",
+    "cases_sha256": "9941f804ff1df049dbbf2ce886b2cf9da563788bfc519ef10919169a98ad70c7",
+    "run_date_note": "2026-11-06（由文件修改时间与内部记录确认，非脚本写入）",
+    "generated_at": "2026-11-13 01:02:27+0800",
+    "unknown_ids": [],
+    "spotcheck_file": "spotcheck_2026-11-13.json",
+    "spotcheck_sha256": "7dca334b1fbc8cba73e74a1fcc1bbde7d17f522f9095c809739ce11303256889"
+  },
+  "metrics": {
+    "bm25": {
+      "rows": 15,
+      "answerable": 12,
+      "refusal_cases": 3,
+      "retrieval_hit": 12,
+      "citation_hit": 11,
+      "exact_citation_hit": 8,
+      "refusal_ok": 3,
+      "avg_delivered_blocks": 10.0,
+      "avg_elapsed_s": 24.26,
+      "avg_llm_s": 22.92,
+      "total_cited_pages": 16,
+      "total_extra_cited_pages": 5,
+      "degraded": 0,
+      "llm_failed": 0
+    },
+    "hybrid": {
+      "rows": 15,
+      "answerable": 12,
+      "refusal_cases": 3,
+      "retrieval_hit": 12,
+      "citation_hit": 11,
+      "exact_citation_hit": 8,
+      "refusal_ok": 3,
+      "avg_delivered_blocks": 10.0,
+      "avg_elapsed_s": 37.31,
+      "avg_llm_s": 35.7,
+      "total_cited_pages": 15,
+      "total_extra_cited_pages": 4,
+      "degraded": 0,
+      "llm_failed": 0
+    }
+  },
+  "by_category": {
+    "bm25": [
+      {
+        "category": "参数编号/选项值",
+        "n": 4,
+        "hit": 4
+      },
+      {
+        "category": "文档明确答案",
+        "n": 2,
+        "hit": 2
+      },
+      {
+        "category": "操作步骤/故障",
+        "n": 2,
+        "hit": 2
+      },
+      {
+        "category": "相似表题/跨页表",
+        "n": 2,
+        "hit": 2
+      },
+      {
+        "category": "精确数字/编号",
+        "n": 1,
+        "hit": 1
+      },
+      {
+        "category": "多父块",
+        "n": 1,
+        "hit": 1
+      }
+    ],
+    "hybrid": [
+      {
+        "category": "参数编号/选项值",
+        "n": 4,
+        "hit": 4
+      },
+      {
+        "category": "文档明确答案",
+        "n": 2,
+        "hit": 2
+      },
+      {
+        "category": "操作步骤/故障",
+        "n": 2,
+        "hit": 2
+      },
+      {
+        "category": "相似表题/跨页表",
+        "n": 2,
+        "hit": 2
+      },
+      {
+        "category": "精确数字/编号",
+        "n": 1,
+        "hit": 1
+      },
+      {
+        "category": "多父块",
+        "n": 1,
+        "hit": 1
+      }
+    ]
+  },
+  "spotcheck": [
+    {
+      "question_id": "Q04",
+      "strategy": "bm25",
+      "history_pages": [
+        13,
+        8,
+        17,
+        16,
+        37,
+        14,
+        12,
+        42,
+        36,
+        41
+      ],
+      "spotcheck_pages": [
+        13,
+        8,
+        17,
+        16,
+        37,
+        14,
+        12,
+        42,
+        36,
+        41
+      ],
+      "pages_identical": true,
+      "history_cited": [
+        8,
+        16
+      ],
+      "spotcheck_cited": [
+        8
+      ],
+      "cited_identical": false,
+      "authority_rank_history": 2,
+      "authority_rank_spotcheck": 2
+    },
+    {
+      "question_id": "Q04",
+      "strategy": "hybrid",
+      "history_pages": [
+        13,
+        8,
+        17,
+        56,
+        16,
+        71,
+        52,
+        40,
+        37,
+        53
+      ],
+      "spotcheck_pages": [
+        13,
+        8,
+        17,
+        56,
+        16,
+        71,
+        52,
+        37,
+        40,
+        14
+      ],
+      "pages_identical": false,
+      "history_cited": [
+        8
+      ],
+      "spotcheck_cited": [
+        8
+      ],
+      "cited_identical": true,
+      "authority_rank_history": 2,
+      "authority_rank_spotcheck": 2
+    },
+    {
+      "question_id": "Q20",
+      "strategy": "bm25",
+      "history_pages": [
+        49,
+        41,
+        48,
+        40,
+        35,
+        37,
+        20,
+        40,
+        15,
+        42
+      ],
+      "spotcheck_pages": [
+        49,
+        41,
+        48,
+        40,
+        35,
+        37,
+        20,
+        40,
+        15,
+        42
+      ],
+      "pages_identical": true,
+      "history_cited": [
+        49
+      ],
+      "spotcheck_cited": [
+        41,
+        49
+      ],
+      "cited_identical": false,
+      "authority_rank_history": 4,
+      "authority_rank_spotcheck": 4
+    },
+    {
+      "question_id": "Q20",
+      "strategy": "hybrid",
+      "history_pages": [
+        49,
+        41,
+        48,
+        35,
+        40,
+        37,
+        20,
+        40,
+        15,
+        42
+      ],
+      "spotcheck_pages": [
+        49,
+        41,
+        48,
+        40,
+        35,
+        37,
+        20,
+        40,
+        42,
+        15
+      ],
+      "pages_identical": false,
+      "history_cited": [
+        49
+      ],
+      "spotcheck_cited": [
+        49
+      ],
+      "cited_identical": true,
+      "authority_rank_history": 5,
+      "authority_rank_spotcheck": 4
+    }
+  ],
+  "details": [
+    {
+      "question_id": "N01",
+      "category": "资料不足",
+      "strategy": "bm25",
+      "answerable": false,
+      "expected_pages": [],
+      "delivered_pages": [
+        11,
+        51,
+        18,
+        30,
+        48,
+        62,
+        39,
+        47,
+        68,
+        74
+      ],
+      "retrieval_hit": null,
+      "authority_rank": null,
+      "cited_pages": [],
+      "citation_hit": null,
+      "exact_citation_match": null,
+      "extra_cited_pages": [],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 60,
+      "elapsed_s": 30.8,
+      "llm_s": 29.3,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": true
+    },
+    {
+      "question_id": "N01",
+      "category": "资料不足",
+      "strategy": "hybrid",
+      "answerable": false,
+      "expected_pages": [],
+      "delivered_pages": [
+        55,
+        30,
+        48,
+        46,
+        24,
+        30,
+        45,
+        29,
+        30,
+        35
+      ],
+      "retrieval_hit": null,
+      "authority_rank": null,
+      "cited_pages": [],
+      "citation_hit": null,
+      "exact_citation_match": null,
+      "extra_cited_pages": [],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 60,
+      "elapsed_s": 53.5,
+      "llm_s": 52.2,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": true
+    },
+    {
+      "question_id": "N02",
+      "category": "资料不足",
+      "strategy": "bm25",
+      "answerable": false,
+      "expected_pages": [],
+      "delivered_pages": [
+        11,
+        19,
+        58,
+        61,
+        19,
+        51,
+        43,
+        20,
+        44,
+        51
+      ],
+      "retrieval_hit": null,
+      "authority_rank": null,
+      "cited_pages": [],
+      "citation_hit": null,
+      "exact_citation_match": null,
+      "extra_cited_pages": [],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 60,
+      "elapsed_s": 19.7,
+      "llm_s": 18.5,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": true
+    },
+    {
+      "question_id": "N02",
+      "category": "资料不足",
+      "strategy": "hybrid",
+      "answerable": false,
+      "expected_pages": [],
+      "delivered_pages": [
+        76,
+        11,
+        46,
+        43,
+        20,
+        44,
+        51,
+        47,
+        62,
+        55
+      ],
+      "retrieval_hit": null,
+      "authority_rank": null,
+      "cited_pages": [],
+      "citation_hit": null,
+      "exact_citation_match": null,
+      "extra_cited_pages": [],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 60,
+      "elapsed_s": 17.1,
+      "llm_s": 15.5,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": true
+    },
+    {
+      "question_id": "N03",
+      "category": "资料不足",
+      "strategy": "bm25",
+      "answerable": false,
+      "expected_pages": [],
+      "delivered_pages": [
+        52,
+        71,
+        42,
+        35,
+        69,
+        40,
+        40,
+        23,
+        41,
+        48
+      ],
+      "retrieval_hit": null,
+      "authority_rank": null,
+      "cited_pages": [],
+      "citation_hit": null,
+      "exact_citation_match": null,
+      "extra_cited_pages": [],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 60,
+      "elapsed_s": 19.2,
+      "llm_s": 17.2,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": true
+    },
+    {
+      "question_id": "N03",
+      "category": "资料不足",
+      "strategy": "hybrid",
+      "answerable": false,
+      "expected_pages": [],
+      "delivered_pages": [
+        52,
+        35,
+        42,
+        69,
+        71,
+        49,
+        50,
+        37,
+        53,
+        41
+      ],
+      "retrieval_hit": null,
+      "authority_rank": null,
+      "cited_pages": [],
+      "citation_hit": null,
+      "exact_citation_match": null,
+      "extra_cited_pages": [],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 60,
+      "elapsed_s": 48.0,
+      "llm_s": 46.4,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": true
+    },
+    {
+      "question_id": "Q01",
+      "category": "文档明确答案",
+      "strategy": "bm25",
+      "answerable": true,
+      "expected_pages": [
+        7
+      ],
+      "delivered_pages": [
+        7,
+        7,
+        7,
+        41,
+        40,
+        53,
+        19,
+        7,
+        52,
+        35
+      ],
+      "retrieval_hit": true,
+      "authority_rank": 1,
+      "cited_pages": [
+        7
+      ],
+      "citation_hit": true,
+      "exact_citation_match": true,
+      "extra_cited_pages": [],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 60,
+      "elapsed_s": 11.3,
+      "llm_s": 10.1,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": false
+    },
+    {
+      "question_id": "Q01",
+      "category": "文档明确答案",
+      "strategy": "hybrid",
+      "answerable": true,
+      "expected_pages": [
+        7
+      ],
+      "delivered_pages": [
+        7,
+        7,
+        7,
+        41,
+        40,
+        19,
+        35,
+        7,
+        52,
+        12
+      ],
+      "retrieval_hit": true,
+      "authority_rank": 1,
+      "cited_pages": [
+        7
+      ],
+      "citation_hit": true,
+      "exact_citation_match": true,
+      "extra_cited_pages": [],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 60,
+      "elapsed_s": 22.9,
+      "llm_s": 19.5,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": false
+    },
+    {
+      "question_id": "Q03",
+      "category": "文档明确答案",
+      "strategy": "bm25",
+      "answerable": true,
+      "expected_pages": [
+        34
+      ],
+      "delivered_pages": [
+        34,
+        7,
+        11,
+        8,
+        8,
+        31,
+        9,
+        10,
+        9,
+        11
+      ],
+      "retrieval_hit": true,
+      "authority_rank": 1,
+      "cited_pages": [
+        34
+      ],
+      "citation_hit": true,
+      "exact_citation_match": true,
+      "extra_cited_pages": [],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 120,
+      "elapsed_s": 14.7,
+      "llm_s": 13.7,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": false
+    },
+    {
+      "question_id": "Q03",
+      "category": "文档明确答案",
+      "strategy": "hybrid",
+      "answerable": true,
+      "expected_pages": [
+        34
+      ],
+      "delivered_pages": [
+        34,
+        7,
+        11,
+        8,
+        31,
+        8,
+        9,
+        10,
+        9,
+        8
+      ],
+      "retrieval_hit": true,
+      "authority_rank": 1,
+      "cited_pages": [
+        34
+      ],
+      "citation_hit": true,
+      "exact_citation_match": true,
+      "extra_cited_pages": [],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 120,
+      "elapsed_s": 33.0,
+      "llm_s": 32.0,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": false
+    },
+    {
+      "question_id": "Q04",
+      "category": "参数编号/选项值",
+      "strategy": "bm25",
+      "answerable": true,
+      "expected_pages": [
+        8
+      ],
+      "delivered_pages": [
+        13,
+        8,
+        17,
+        16,
+        37,
+        14,
+        12,
+        42,
+        36,
+        41
+      ],
+      "retrieval_hit": true,
+      "authority_rank": 2,
+      "cited_pages": [
+        8,
+        16
+      ],
+      "citation_hit": true,
+      "exact_citation_match": false,
+      "extra_cited_pages": [
+        16
+      ],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 60,
+      "elapsed_s": 22.6,
+      "llm_s": 21.1,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": false
+    },
+    {
+      "question_id": "Q04",
+      "category": "参数编号/选项值",
+      "strategy": "hybrid",
+      "answerable": true,
+      "expected_pages": [
+        8
+      ],
+      "delivered_pages": [
+        13,
+        8,
+        17,
+        56,
+        16,
+        71,
+        52,
+        40,
+        37,
+        53
+      ],
+      "retrieval_hit": true,
+      "authority_rank": 2,
+      "cited_pages": [
+        8
+      ],
+      "citation_hit": true,
+      "exact_citation_match": true,
+      "extra_cited_pages": [],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 60,
+      "elapsed_s": 55.1,
+      "llm_s": 53.8,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": false
+    },
+    {
+      "question_id": "Q06",
+      "category": "参数编号/选项值",
+      "strategy": "bm25",
+      "answerable": true,
+      "expected_pages": [
+        11,
+        32
+      ],
+      "delivered_pages": [
+        56,
+        11,
+        33,
+        53,
+        52,
+        32,
+        34,
+        59,
+        71,
+        63
+      ],
+      "retrieval_hit": true,
+      "authority_rank": 2,
+      "cited_pages": [
+        11
+      ],
+      "citation_hit": true,
+      "exact_citation_match": false,
+      "extra_cited_pages": [],
+      "missing_cited_pages": [
+        32
+      ],
+      "delivered_blocks": 10,
+      "candidates": 120,
+      "elapsed_s": 27.0,
+      "llm_s": 25.6,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": false
+    },
+    {
+      "question_id": "Q06",
+      "category": "参数编号/选项值",
+      "strategy": "hybrid",
+      "answerable": true,
+      "expected_pages": [
+        11,
+        32
+      ],
+      "delivered_pages": [
+        56,
+        11,
+        53,
+        52,
+        33,
+        59,
+        32,
+        34,
+        71,
+        63
+      ],
+      "retrieval_hit": true,
+      "authority_rank": 2,
+      "cited_pages": [
+        11
+      ],
+      "citation_hit": true,
+      "exact_citation_match": false,
+      "extra_cited_pages": [],
+      "missing_cited_pages": [
+        32
+      ],
+      "delivered_blocks": 10,
+      "candidates": 120,
+      "elapsed_s": 18.8,
+      "llm_s": 17.1,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": false
+    },
+    {
+      "question_id": "Q09",
+      "category": "操作步骤/故障",
+      "strategy": "bm25",
+      "answerable": true,
+      "expected_pages": [
+        23
+      ],
+      "delivered_pages": [
+        23,
+        23,
+        24,
+        27,
+        23,
+        22,
+        22,
+        23,
+        21,
+        22
+      ],
+      "retrieval_hit": true,
+      "authority_rank": 1,
+      "cited_pages": [
+        23
+      ],
+      "citation_hit": true,
+      "exact_citation_match": true,
+      "extra_cited_pages": [],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 120,
+      "elapsed_s": 19.7,
+      "llm_s": 18.7,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": false
+    },
+    {
+      "question_id": "Q09",
+      "category": "操作步骤/故障",
+      "strategy": "hybrid",
+      "answerable": true,
+      "expected_pages": [
+        23
+      ],
+      "delivered_pages": [
+        23,
+        23,
+        24,
+        27,
+        23,
+        22,
+        22,
+        23,
+        21,
+        23
+      ],
+      "retrieval_hit": true,
+      "authority_rank": 1,
+      "cited_pages": [
+        23
+      ],
+      "citation_hit": true,
+      "exact_citation_match": true,
+      "extra_cited_pages": [],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 120,
+      "elapsed_s": 20.5,
+      "llm_s": 19.2,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": false
+    },
+    {
+      "question_id": "Q10",
+      "category": "参数编号/选项值",
+      "strategy": "bm25",
+      "answerable": true,
+      "expected_pages": [
+        17
+      ],
+      "delivered_pages": [
+        17,
+        56,
+        12,
+        52,
+        20,
+        20,
+        36,
+        40,
+        40,
+        18
+      ],
+      "retrieval_hit": true,
+      "authority_rank": 1,
+      "cited_pages": [
+        17,
+        20,
+        36,
+        40
+      ],
+      "citation_hit": true,
+      "exact_citation_match": false,
+      "extra_cited_pages": [
+        20,
+        36,
+        40
+      ],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 60,
+      "elapsed_s": 20.2,
+      "llm_s": 18.8,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": false
+    },
+    {
+      "question_id": "Q10",
+      "category": "参数编号/选项值",
+      "strategy": "hybrid",
+      "answerable": true,
+      "expected_pages": [
+        17
+      ],
+      "delivered_pages": [
+        17,
+        56,
+        12,
+        52,
+        14,
+        20,
+        48,
+        50,
+        20,
+        40
+      ],
+      "retrieval_hit": true,
+      "authority_rank": 1,
+      "cited_pages": [
+        17,
+        48,
+        56
+      ],
+      "citation_hit": true,
+      "exact_citation_match": false,
+      "extra_cited_pages": [
+        48,
+        56
+      ],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 120,
+      "elapsed_s": 62.1,
+      "llm_s": 60.2,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": false
+    },
+    {
+      "question_id": "Q13",
+      "category": "操作步骤/故障",
+      "strategy": "bm25",
+      "answerable": true,
+      "expected_pages": [
+        26
+      ],
+      "delivered_pages": [
+        24,
+        20,
+        26,
+        30,
+        27,
+        26,
+        28,
+        28,
+        24,
+        21
+      ],
+      "retrieval_hit": true,
+      "authority_rank": 3,
+      "cited_pages": [
+        26
+      ],
+      "citation_hit": true,
+      "exact_citation_match": true,
+      "extra_cited_pages": [],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 120,
+      "elapsed_s": 33.2,
+      "llm_s": 32.2,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": false
+    },
+    {
+      "question_id": "Q13",
+      "category": "操作步骤/故障",
+      "strategy": "hybrid",
+      "answerable": true,
+      "expected_pages": [
+        26
+      ],
+      "delivered_pages": [
+        24,
+        20,
+        26,
+        30,
+        27,
+        26,
+        28,
+        28,
+        21,
+        24
+      ],
+      "retrieval_hit": true,
+      "authority_rank": 3,
+      "cited_pages": [
+        26
+      ],
+      "citation_hit": true,
+      "exact_citation_match": true,
+      "extra_cited_pages": [],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 120,
+      "elapsed_s": 22.4,
+      "llm_s": 21.1,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": false
+    },
+    {
+      "question_id": "Q16",
+      "category": "精确数字/编号",
+      "strategy": "bm25",
+      "answerable": true,
+      "expected_pages": [
+        31
+      ],
+      "delivered_pages": [
+        31,
+        31,
+        72,
+        38,
+        36,
+        48,
+        42,
+        46,
+        70,
+        45
+      ],
+      "retrieval_hit": true,
+      "authority_rank": 1,
+      "cited_pages": [
+        31
+      ],
+      "citation_hit": true,
+      "exact_citation_match": true,
+      "extra_cited_pages": [],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 120,
+      "elapsed_s": 29.6,
+      "llm_s": 28.1,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": false
+    },
+    {
+      "question_id": "Q16",
+      "category": "精确数字/编号",
+      "strategy": "hybrid",
+      "answerable": true,
+      "expected_pages": [
+        31
+      ],
+      "delivered_pages": [
+        31,
+        31,
+        72,
+        38,
+        36,
+        48,
+        42,
+        46,
+        70,
+        45
+      ],
+      "retrieval_hit": true,
+      "authority_rank": 1,
+      "cited_pages": [
+        31
+      ],
+      "citation_hit": true,
+      "exact_citation_match": true,
+      "extra_cited_pages": [],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 120,
+      "elapsed_s": 30.2,
+      "llm_s": 28.9,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": false
+    },
+    {
+      "question_id": "Q19",
+      "category": "多父块",
+      "strategy": "bm25",
+      "answerable": true,
+      "expected_pages": [
+        44
+      ],
+      "delivered_pages": [
+        44,
+        45,
+        46,
+        48,
+        49,
+        37,
+        15,
+        42,
+        44,
+        13
+      ],
+      "retrieval_hit": true,
+      "authority_rank": 1,
+      "cited_pages": [
+        44
+      ],
+      "citation_hit": true,
+      "exact_citation_match": true,
+      "extra_cited_pages": [],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 60,
+      "elapsed_s": 20.9,
+      "llm_s": 19.5,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": false
+    },
+    {
+      "question_id": "Q19",
+      "category": "多父块",
+      "strategy": "hybrid",
+      "answerable": true,
+      "expected_pages": [
+        44
+      ],
+      "delivered_pages": [
+        44,
+        48,
+        49,
+        45,
+        46,
+        40,
+        37,
+        15,
+        35,
+        41
+      ],
+      "retrieval_hit": true,
+      "authority_rank": 1,
+      "cited_pages": [
+        44,
+        48
+      ],
+      "citation_hit": true,
+      "exact_citation_match": false,
+      "extra_cited_pages": [
+        48
+      ],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 120,
+      "elapsed_s": 41.9,
+      "llm_s": 39.9,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": false
+    },
+    {
+      "question_id": "Q20",
+      "category": "相似表题/跨页表",
+      "strategy": "bm25",
+      "answerable": true,
+      "expected_pages": [
+        40
+      ],
+      "delivered_pages": [
+        49,
+        41,
+        48,
+        40,
+        35,
+        37,
+        20,
+        40,
+        15,
+        42
+      ],
+      "retrieval_hit": true,
+      "authority_rank": 4,
+      "cited_pages": [
+        49
+      ],
+      "citation_hit": false,
+      "exact_citation_match": false,
+      "extra_cited_pages": [
+        49
+      ],
+      "missing_cited_pages": [
+        40
+      ],
+      "delivered_blocks": 10,
+      "candidates": 120,
+      "elapsed_s": 22.1,
+      "llm_s": 20.8,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": false
+    },
+    {
+      "question_id": "Q20",
+      "category": "相似表题/跨页表",
+      "strategy": "hybrid",
+      "answerable": true,
+      "expected_pages": [
+        40
+      ],
+      "delivered_pages": [
+        49,
+        41,
+        48,
+        35,
+        40,
+        37,
+        20,
+        40,
+        15,
+        42
+      ],
+      "retrieval_hit": true,
+      "authority_rank": 5,
+      "cited_pages": [
+        49
+      ],
+      "citation_hit": false,
+      "exact_citation_match": false,
+      "extra_cited_pages": [
+        49
+      ],
+      "missing_cited_pages": [
+        40
+      ],
+      "delivered_blocks": 10,
+      "candidates": 120,
+      "elapsed_s": 34.7,
+      "llm_s": 32.9,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": false
+    },
+    {
+      "question_id": "Q22",
+      "category": "相似表题/跨页表",
+      "strategy": "bm25",
+      "answerable": true,
+      "expected_pages": [
+        71
+      ],
+      "delivered_pages": [
+        71,
+        59,
+        53,
+        69,
+        65,
+        72,
+        33,
+        32,
+        11,
+        34
+      ],
+      "retrieval_hit": true,
+      "authority_rank": 1,
+      "cited_pages": [
+        71
+      ],
+      "citation_hit": true,
+      "exact_citation_match": true,
+      "extra_cited_pages": [],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 120,
+      "elapsed_s": 24.1,
+      "llm_s": 22.8,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": false
+    },
+    {
+      "question_id": "Q22",
+      "category": "相似表题/跨页表",
+      "strategy": "hybrid",
+      "answerable": true,
+      "expected_pages": [
+        71
+      ],
+      "delivered_pages": [
+        71,
+        59,
+        53,
+        69,
+        65,
+        72,
+        33,
+        32,
+        56,
+        11
+      ],
+      "retrieval_hit": true,
+      "authority_rank": 1,
+      "cited_pages": [
+        71
+      ],
+      "citation_hit": true,
+      "exact_citation_match": true,
+      "extra_cited_pages": [],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 120,
+      "elapsed_s": 21.8,
+      "llm_s": 20.5,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": false
+    },
+    {
+      "question_id": "Q26",
+      "category": "参数编号/选项值",
+      "strategy": "bm25",
+      "answerable": true,
+      "expected_pages": [
+        60
+      ],
+      "delivered_pages": [
+        60,
+        57,
+        59,
+        72,
+        70,
+        56,
+        66,
+        31,
+        54,
+        53
+      ],
+      "retrieval_hit": true,
+      "authority_rank": 1,
+      "cited_pages": [
+        60
+      ],
+      "citation_hit": true,
+      "exact_citation_match": true,
+      "extra_cited_pages": [],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 60,
+      "elapsed_s": 48.8,
+      "llm_s": 47.4,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": false
+    },
+    {
+      "question_id": "Q26",
+      "category": "参数编号/选项值",
+      "strategy": "hybrid",
+      "answerable": true,
+      "expected_pages": [
+        60
+      ],
+      "delivered_pages": [
+        60,
+        57,
+        59,
+        72,
+        70,
+        56,
+        66,
+        31,
+        69,
+        53
+      ],
+      "retrieval_hit": true,
+      "authority_rank": 1,
+      "cited_pages": [
+        60
+      ],
+      "citation_hit": true,
+      "exact_citation_match": true,
+      "extra_cited_pages": [],
+      "missing_cited_pages": [],
+      "delivered_blocks": 10,
+      "candidates": 60,
+      "elapsed_s": 77.6,
+      "llm_s": 76.3,
+      "degraded": false,
+      "llm_failed": false,
+      "refused": false
+    }
+  ]
+}
