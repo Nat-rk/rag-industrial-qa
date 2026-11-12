@@ -8,6 +8,8 @@
 > 这是一个**单文档、单轮问答**项目，附带一套基于固定测试集的批量评测能力；模型推理与重排序依赖智谱 API，**不属于可独立运行的离线推理系统**。能力边界写在「已实现 / 未实现」一节，请不要按 Web 服务或 Agent 的预期来读它。
 
 项目演示地址：https://www.bilibili.com/video/BV1MgWo6KEAX/?vd_source=326b9c922ec409b3f17224151543f18e
+<img width="1252" height="649" alt="image" src="https://github.com/user-attachments/assets/afe7203a-5f28-4969-877c-ba01393e3669" />
+
 ---
 
 ## 1. 解决什么问题
