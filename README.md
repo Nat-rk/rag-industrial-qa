@@ -31,7 +31,7 @@
 | 能力 | 位置 |
 |---|---|
 | 句子级检索 + 父块回填 | `retrieval/backfill.py` |
-| BM25 关键词检索（含 12 个语法停用词） | `retrieval/bm25.py` |
+| BM25 关键词检索（使用 bm25s 内置英文停用词，并额外过滤 12 个语法词） | `retrieval/bm25.py` |
 | Dense 向量检索 | `retrieval/hybrid.py` |
 | Hybrid 混合检索 + RRF 融合 | `retrieval/hybrid.py` |
 | Reranker 重排序，失败自动降级 | `retrieval/reranker.py` |
