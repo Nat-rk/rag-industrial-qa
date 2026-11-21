@@ -18,9 +18,8 @@ from __future__ import annotations
 
 import time
 
-import requests
-
 import config
+from errors import LLMError
 from retrieval.store import api_key
 
 SYSTEM_PROMPT = """你是工业变频器/伺服设备的技术支持工程师，正在根据《VLT Integrated Motion Controller Application Guide》回答现场工程师的问题。
@@ -54,39 +53,53 @@ SYSTEM_PROMPT = """你是工业变频器/伺服设备的技术支持工程师，
 """
 
 
-def answer(question: str, context: str, sources: list[dict]):
-    """调 LLM；返回 (回答文本, 用量, 耗时)。失败抛 RuntimeError，由 main 决定怎么处理。"""
+def answer(question: str, context: str, sources: list[dict], *,
+           model: str | None = None, temperature: float | None = None,
+           api_base: str | None = None, timeout: float | None = None):
+    """调 LLM；返回 (回答文本, 用量, 耗时)。失败抛 LLMError（RuntimeError 子类），由 main 决定怎么处理。
+
+    四个可选参数由 pipeline 从 Settings 传入；不传则退回 config（过渡期兼容）。
+    """
+    model = config.LLM_MODEL if model is None else model
+    temperature = config.LLM_TEMPERATURE if temperature is None else temperature
+    api_base = config.API_BASE if api_base is None else api_base
+    timeout = config.LLM_TIMEOUT if timeout is None else timeout
+
     user_prompt = (
         f"【文档片段】\n{context}\n\n"
         f"【问题】\n{question}\n\n"
         "请按系统提示的格式回答。"
     )
     payload = {
-        "model": config.LLM_MODEL,
+        "model": model,
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_prompt},
         ],
-        "temperature": config.LLM_TEMPERATURE,
+        "temperature": temperature,
         "stream": False,
     }
     headers = {"Authorization": f"Bearer {api_key()}", "Content-Type": "application/json"}
 
+    # 与 reranker 同理：requests 延迟到真正发请求时再导入，
+    # 让 `import qa.generator` 在干净环境里也能成功（离线测试只 mock 这一层）。
+    import requests
+
     t0 = time.time()
     try:
-        r = requests.post(f"{config.API_BASE}/chat/completions", json=payload,
-                          headers=headers, timeout=config.LLM_TIMEOUT)
+        r = requests.post(f"{api_base}/chat/completions", json=payload,
+                          headers=headers, timeout=timeout)
     except requests.RequestException as e:
-        raise RuntimeError(f"LLM 请求失败：{type(e).__name__}: {e}") from e
+        raise LLMError(f"LLM 请求失败：{type(e).__name__}: {e}") from e
 
     elapsed = time.time() - t0
     if r.status_code != 200:
-        raise RuntimeError(f"LLM 返回 HTTP {r.status_code}: {r.text[:300]}")
+        raise LLMError(f"LLM 返回 HTTP {r.status_code}: {r.text[:300]}")
 
     data = r.json()
     choices = data.get("choices") or []
     if not choices:
-        raise RuntimeError(f"LLM 响应异常：{str(data)[:300]}")
+        raise LLMError(f"LLM 响应异常：{str(data)[:300]}")
 
     text = (choices[0].get("message") or {}).get("content", "").strip()
     return text, data.get("usage", {}), elapsed

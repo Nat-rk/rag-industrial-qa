@@ -1,0 +1,43 @@
+name: offline-tests
+
+# 为什么要有这个文件：
+#   README 里写了「47 项离线测试全绿」，但此前没有任何机器在每次提交时验证它。
+#   这个 workflow 只做一件最小的事——装依赖、跑 unittest——用来证明那句话不是手写的。
+#
+# 它不需要 ZHIPU_API_KEY，也不需要数据资产（chroma_db / parents.json / units.json）：
+# 测试用 tests/fixtures/ 里的虚构语料，外部依赖（LLM、rerank）都被 mock 掉了。
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unittest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run offline unit tests
+        # -t . 不能省：tld 需要是仓库根，tests/__init__.py 靠它把根目录放进 sys.path
+        run: python -m unittest discover -s tests -t . -v
+
+      - name: Import smoke test (no data, no key)
+        run: |
+          python -c "import config, main, retrieval.bm25, retrieval.hybrid, retrieval.reranker, qa.generator; print('imports ok')"

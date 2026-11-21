@@ -33,7 +33,9 @@ class StubLLM:
         self.error = error
         self.calls: list[tuple[str, list]] = []
 
-    def __call__(self, question, context, sources):
+    def __call__(self, question, context, sources, **kwargs):
+        # S2 起 pipeline 会把 Settings 里的 LLM 参数作为关键字参数传进来；
+        # 这个桩只记录上下文，多余参数忽略即可。
         self.calls.append((context, sources))
         if self.error:
             raise self.error
@@ -45,7 +47,8 @@ def hits_for(parent_id: str, page: int, n: int = 3) -> list[Hit]:
                 text=f"句子 {i}", score=1.0 / (i + 1)) for i in range(n)]
 
 
-def identity_rerank(question, candidates, top_k):
+def identity_rerank(question, candidates, top_k, **kwargs):
+    # **kwargs 接收 pipeline 传入的 model/api_base（S2 起显式传 Settings）
     return candidates[:top_k], {"degraded": False, "elapsed": 0.0}
 
 

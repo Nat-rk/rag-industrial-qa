@@ -40,7 +40,8 @@ class TestRerankDegrade(unittest.TestCase):
     def test_normal_path_reorders_and_records_score(self):
         candidates = make_candidates()
 
-        def fake(query, documents, top_n=None):
+        def fake(query, documents, top_n=None, **kwargs):
+            # **kwargs 接收 rerank_candidates 传来的 model/api_base（S2 起显式传 Settings）
             return [2, 0, 1], [0.9, 0.5, 0.1], {"total_tokens": 10}, 0.12
 
         with mock.patch.object(reranker, "rerank_documents", fake):

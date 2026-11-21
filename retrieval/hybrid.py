@@ -20,8 +20,14 @@ class DenseRetriever:
 
     name = "dense"
 
-    def __init__(self, units: list[dict]):
+    def __init__(self, units: list[dict], *, chroma_dir=None, collection: str | None = None,
+                 embed_model: str | None = None, api_base: str | None = None):
+        # 四个参数都由 pipeline 从 Settings 传进来；不传则退回 config（过渡期兼容）。
         self.by_id = {u["id"]: u for u in units}
+        self._chroma_dir = chroma_dir if chroma_dir is not None else config.CHROMA
+        self._collection = collection if collection is not None else config.COLLECTION
+        self._embed_model = embed_model if embed_model is not None else config.EMBED_MODEL
+        self._api_base = api_base if api_base is not None else config.API_BASE
         self._qvec_cache: dict[str, list[float]] = {}
         self._coll = None
         self._embed = None
@@ -33,12 +39,12 @@ class DenseRetriever:
         from llama_index.embeddings.zhipuai import ZhipuAIEmbedding
 
         self._embed = ZhipuAIEmbedding(
-            model=config.EMBED_MODEL,
+            model=self._embed_model,
             api_key=api_key(),
-            api_base=config.API_BASE,
+            api_base=self._api_base,
         )
-        client = chromadb.PersistentClient(path=str(config.CHROMA))
-        self._coll = client.get_collection(config.COLLECTION)
+        client = chromadb.PersistentClient(path=str(self._chroma_dir))
+        self._coll = client.get_collection(self._collection)
 
     def _vector(self, qtext: str) -> list[float]:
         key = hashlib.sha1(qtext.encode("utf-8")).hexdigest()
@@ -73,8 +79,10 @@ class HybridRetriever:
     name = "hybrid"
 
     def __init__(self, dense: DenseRetriever, bm25: BM25UnitRetriever,
-                 k: int = config.RRF_K, side: int = config.RRF_SIDE):
-        self.dense, self.bm25, self.k, self.base_side = dense, bm25, k, side
+                 *, k: int | None = None, side: int | None = None):
+        self.dense, self.bm25 = dense, bm25
+        self.k = config.RRF_K if k is None else k
+        self.base_side = config.RRF_SIDE if side is None else side
 
     def retrieve(self, qtext: str, n: int) -> list[Hit]:
         side = self.base_side if n <= self.base_side else n

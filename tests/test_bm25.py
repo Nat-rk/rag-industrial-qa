@@ -10,6 +10,14 @@ import unittest
 
 try:
     from retrieval.bm25 import BM25UnitRetriever
+
+    # 只 import 到 BM25UnitRetriever 不够：它把 bm25s / llama-index 的导入放在
+    # __init__ 里（延迟导入）。干净环境里模块能导入、构造时才炸，导致
+    # skipUnless 判断失效、变成 setUpClass ERROR。所以这里把真正用到的两个
+    # 三方包也探一遍，缺任何一个就整体 skip。
+    import bm25s  # noqa: F401
+    from llama_index.core.schema import TextNode  # noqa: F401
+
     HAVE_DEPS = True
 except Exception as exc:          # 缺依赖时跳过，而不是让整个测试套件红掉
     HAVE_DEPS = False

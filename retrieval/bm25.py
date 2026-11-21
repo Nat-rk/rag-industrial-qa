@@ -41,15 +41,21 @@ class BM25UnitRetriever:
 
     name = "bm25"
 
-    def __init__(self, units: list[dict]):
+    def __init__(self, units: list[dict], *, extra_stopwords=None,
+                 index_size: int | None = None):
+        # extra_stopwords / index_size 由调用方（pipeline 传 Settings 里的值）决定；
+        # 不传则退回 config（迁移期兼容，S3 后统一用 Settings）。
         from bm25s.tokenization import STOPWORDS_EN
         from llama_index.retrievers.bm25 import BM25Retriever
 
+        words = config.EXTRA_STOPWORDS if extra_stopwords is None else extra_stopwords
+        size = max(config.STEPS) if index_size is None else index_size
+
         self.by_id = {u["id"]: u for u in units}
-        self.language = sorted(set(STOPWORDS_EN) | set(config.EXTRA_STOPWORDS))
+        self.language = sorted(set(STOPWORDS_EN) | set(words))
         self.retriever = BM25Retriever.from_defaults(
             nodes=_unit_nodes(units),
-            similarity_top_k=max(config.STEPS),   # 一次取够，扩展时不用重建索引
+            similarity_top_k=size,   # 一次取够，扩展时不用重建索引
             language=self.language,
         )
 

@@ -13,9 +13,8 @@ import json
 import time
 from dataclasses import dataclass, field
 
-import requests
-
 import config
+from errors import ConfigError, RerankError
 from retrieval.store import api_key
 
 MAX_DOCS = 60
@@ -23,8 +22,8 @@ TIMEOUT = 120
 RETRIES = 3
 
 
-class RerankError(RuntimeError):
-    """rerank 调用失败（网络、额度、响应格式都归到这里）。"""
+# RerankError 现在定义在 errors.py（统一异常层次），这里 import 后保持同名导出，
+# 旧代码 `from retrieval.reranker import RerankError` 继续有效。
 
 
 @dataclass
@@ -37,11 +36,17 @@ class RerankOutcome:
     error: str | None = None
 
 
-def _post(payload: dict, headers: dict) -> dict:
+def _post(payload: dict, headers: dict, api_base: str | None = None) -> dict:
+    # requests 放在函数内导入：这样 `import retrieval.reranker` 在没装依赖的
+    # 环境里也能成功——离线单测（tests/test_pipeline.py）才不需要先 pip install
+    # 才能跑，失败信息也会落在真正调用它的地方，而不是一导入就报 ModuleNotFoundError。
+    import requests
+
+    base = config.API_BASE if api_base is None else api_base
     last = None
     for attempt in range(1, RETRIES + 1):
         try:
-            r = requests.post(f"{config.API_BASE}/rerank", json=payload,
+            r = requests.post(f"{base}/rerank", json=payload,
                               headers=headers, timeout=TIMEOUT)
             if r.status_code == 429 or r.status_code >= 500:
                 last = f"HTTP {r.status_code}: {r.text[:200]}"
@@ -56,10 +61,14 @@ def _post(payload: dict, headers: dict) -> dict:
     raise RerankError(f"重试 {RETRIES} 次仍失败：{last}")
 
 
-def rerank_documents(query: str, documents: list[str], top_n: int | None = None):
-    """调用 rerank-pro，返回 (按相关性排序的下标, 分数, usage, 耗时)。"""
+def rerank_documents(query: str, documents: list[str], top_n: int | None = None, *,
+                     model: str | None = None, api_base: str | None = None):
+    """调用 rerank-pro，返回 (按相关性排序的下标, 分数, usage, 耗时)。
+
+    model / api_base 由调用方传入（pipeline 传 Settings）；不传退回 config。
+    """
     payload = {
-        "model": config.RERANK_MODEL,
+        "model": config.RERANK_MODEL if model is None else model,
         "query": query,
         "documents": documents[:MAX_DOCS],
     }
@@ -68,7 +77,7 @@ def rerank_documents(query: str, documents: list[str], top_n: int | None = None)
     headers = {"Authorization": f"Bearer {api_key()}", "Content-Type": "application/json"}
 
     t0 = time.time()
-    data = _post(payload, headers)
+    data = _post(payload, headers, api_base)
     elapsed = time.time() - t0
 
     results = data.get("results") or []
@@ -94,22 +103,31 @@ def rerank_documents(query: str, documents: list[str], top_n: int | None = None)
     return order, scores, data.get("usage", {}), elapsed
 
 
-def rerank_candidates(question: str, candidates: list[dict], top_k: int = config.DELIVER_K):
+def rerank_candidates(question: str, candidates: list[dict], top_k: int | None = None, *,
+                      model: str | None = None, api_base: str | None = None):
     """对候选父块重排；返回 (前 top_k 个候选, 元信息)。
 
     元信息里 degraded=True 表示接口失败、用的是原顺序——调用方必须如实展示。
+    top_k 不传时取 config.DELIVER_K（过渡期兼容）；pipeline 会显式传 Settings 的值。
     """
+    if top_k is None:
+        top_k = config.DELIVER_K
     if not candidates:
         return [], {"degraded": False, "elapsed": 0.0, "error": "无候选"}
 
     docs = [c["parent"].text for c in candidates[:MAX_DOCS]]
     try:
-        order, scores, usage, elapsed = rerank_documents(question, docs, top_n=top_k)
+        order, scores, usage, elapsed = rerank_documents(
+            question, docs, top_n=top_k, model=model, api_base=api_base)
         picked = [candidates[i] for i in order[:top_k]]
         for c, s in zip(picked, scores):
             c["rerank_score"] = s
         return picked, {"degraded": False, "elapsed": elapsed, "usage": usage}
-    except Exception as e:                      # 关键：任何异常都不能让问答中断
+    except ConfigError:
+        # 配置错误（比如没配 key）不是"rerank 这家服务挂了"，不能降级糊过去：
+        # 降级会让 CLI 拿着一份"看起来正常"的答案继续跑，掩盖真正的问题。
+        raise
+    except Exception as e:                      # 关键：接口/网络异常不能让问答中断
         return candidates[:top_k], {
             "degraded": True,
             "elapsed": 0.0,

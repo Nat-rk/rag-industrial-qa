@@ -1,4 +1,4 @@
-# 基于 RAG 的工业设备知识助手
+﻿# 基于 RAG 的工业设备知识助手
 
 项目状态：核心 RAG 问答与评测流程已完成，当前为单文档命令行版本。
 面向 Danfoss VLT® AutomationDrive FC 302 技术文档，构建基于 RAG 的工业设备知识问答系统，支持设备参数查询、功能解释与故障排查，并提供文件名和页码引用，方便用户回溯原始资料。对于资料不足的问题，系统按照拒答约束处理。
@@ -38,7 +38,7 @@
 | 引用映射与越界编号检查 | `qa/citation.py` |
 | 批量问答评测（15 题 × 2 策略） | `eval/run_cases.py` |
 | 公开评测报告生成（脱敏 + 严格引用口径） | `eval/reports/build_public_report.py` |
-| 离线单元测试（47 项，不需要数据与 key） | `tests/` |
+| 离线单元测试（95 项，不需要数据与 key，需先装依赖） | `tests/` |
 | Reranker 故障注入与降级验证 | `eval/test_rerank_failure.py`（需真实数据与 API） |
 
 **未实现（不要当成已有能力）**
@@ -72,8 +72,12 @@
 
 ```text
 .
-├── main.py                  # 入口：命令行 / 交互模式；ask() 是整条链的骨架
-├── config.py                # 路径、策略、模型、候选数、上下文长度
+├── main.py                  # 入口：命令行 / 交互模式；只解析参数、配日志、打印
+├── qa/pipeline.py           # 8 步流程的真正实现：run(question, settings=...)
+├── settings.py              # 配置对象 Settings：默认值、环境变量、构造即校验
+├── config.py                # 过渡别名层：值全部来自 Settings（S2 后删除）
+├── errors.py                # 统一异常：ConfigError / DataError / LLMError / RerankError
+├── logging_setup.py         # 日志一次配置 + trace_id（每次问答一个短 id）
 ├── retrieval/
 │   ├── store.py             # 读 parents / units / docstore，补出 file_name
 │   ├── bm25.py              # 方案 A 的词面召回（本地 BM25，不调 API）
@@ -98,7 +102,9 @@
 │   ├── fixtures/sample_device_docs.json   # 虚构手册片段（非真实文档）
 │   ├── test_citation.py / test_context.py / test_backfill.py
 │   ├── test_rrf.py / test_bm25.py / test_rerank_degrade.py
-│   └── test_pipeline.py / test_run_cases_scoring.py
+│   ├── test_pipeline.py / test_run_cases_scoring.py
+│   └── test_settings.py / test_errors.py / test_logging_setup.py
+│   └── test_pipeline_module.py   # S2：Settings 注入、trace 恢复、patch 有效性
 ├── docs/
 │   ├── 架构与模块说明.md      # 每个模块解决什么问题、改哪里
 │   └── 验收报告.md           # 评测方法、指标口径、结果、限制
@@ -136,12 +142,16 @@ python eval/run_cases.py                       # 15 题 × 2 策略
 python eval/run_cases.py --ids Q04 N03 --modes bm25
 python eval/test_rerank_failure.py             # 故障注入（12 次）
 
-# 6. 离线自检（不需要数据、不需要 key、不联网）
-python -m unittest discover -s tests -t .      # 47 项，约 2 秒
+# 6. 离线自检（不需要数据、不需要 key、不联网——但依赖仍要先装好）
+python -m unittest discover -s tests -t .      # 95 项，约 2 秒
 python eval/reports/build_public_report.py     # 从已有结果重新生成公开报告
 ```
 
 > `.env.example` 只是变量清单，本项目**不加载** `.env`。请用系统环境变量或 IDE 的运行配置。
+>
+> 关于“离线”：指的是**不需要数据资产、不需要 API key、不联网**，不等于“不需要安装依赖”——
+> 先执行 `pip install -r requirements.txt`。没装依赖时 `unittest discover` 会出现
+> `ModuleNotFoundError`（例如缺 `requests` / `llama-index-*`），那是环境没准备好，不是测试失败。
 
 ---
 
@@ -209,7 +219,7 @@ export RAG_DATA_DIR=/path/to/your/data
 |---|---|---|---|
 | 历史评测（2026-11-06，15 题 × 2 策略） | `eval/reports/evaluation.md` / `.csv` / `.json` | 那一轮的检索、引用、拒答与耗时 | 当前代码在所有数据上的表现 |
 | 当前代码抽检（Q04 + Q20 × 2 策略，4 次） | 同上第 6 节 | 这 4 次的检索可复现（权威页 4/4 在交付里）；引用有运行间波动 | 30 行历史结果都来自当前 HEAD |
-| 离线单元测试（47 项，无网络/无 key） | `tests/` | 引用解析、上下文编号与截断、去重与自适应扩展、RRF 公式、降级路径、评测打分逻辑 | 真实召回质量与答案质量 |
+| 离线单元测试（95 项，无网络/无 key，需先装依赖） | `tests/` | 引用解析、上下文编号与截断、去重与自适应扩展、RRF 公式、降级路径、评测打分逻辑 | 真实召回质量与答案质量 |
 - 本轮完整记录（30 行原始 JSON，含模型原文与手册章节标题）按约定**不随仓库发布**；可公开的脱敏版本见 [`eval/reports/evaluation.md`](eval/reports/evaluation.md)（同目录还有逐题明细 CSV 与生成脚本，指标可逐项重算）。
 
 指标口径、逐题结果与已知失败案例见 [`eval/reports/evaluation.md`](eval/reports/evaluation.md) 与 [`docs/验收报告.md`](docs/验收报告.md)。

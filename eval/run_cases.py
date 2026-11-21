@@ -22,9 +22,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-import config                                    # noqa: E402
-from main import ask, build_retriever            # noqa: E402
+from main import ask                             # noqa: E402
+from qa.pipeline import build_retriever          # noqa: E402
 from retrieval.store import load_parents, load_units  # noqa: E402
+from settings import Settings                    # noqa: E402
 
 REFUSAL_MARKS = ["没有找到足够", "没有足够的信息", "信息不足", "无法回答", "未提及", "文档中没有"]
 CASES = Path(__file__).resolve().parent / "qa_cases.json"
@@ -36,9 +37,15 @@ def load_cases() -> list[dict]:
 
 
 def run(cases: list[dict], modes: list[str],
-        out_path: Path | None = None, merge: bool = False) -> list[dict]:
-    parents, units = load_parents(), load_units()
-    retrievers = {m: build_retriever(m, units) for m in modes}   # 每种策略只建一次
+        out_path: Path | None = None, merge: bool = False,
+        settings: Settings | None = None) -> list[dict]:
+    # 评测脚本自己建配置：不跟命令行共用 main.settings() 那个全局单例，
+    # 否则同一进程里改过环境变量会被旧缓存带偏。
+    s = settings or Settings.from_env()
+    s.out_dir.mkdir(parents=True, exist_ok=True)
+    parents = load_parents(parents_path=s.parents_path, docstore_path=s.docstore_path)
+    units = load_units(units_path=s.units_path)
+    retrievers = {m: build_retriever(m, units, s) for m in modes}   # 每种策略只建一次
 
     rows: list[dict] = []
     kept: list[dict] = []          # --merge 时保留的旧行
@@ -59,7 +66,7 @@ def run(cases: list[dict], modes: list[str],
             t0 = time.time()
             try:
                 result = ask(case["q"], mode=mode, retriever=retrievers[mode],
-                             parents=parents, units=units)
+                             parents=parents, units=units, settings=s)
             except Exception as e:                  # 网络/接口异常：记一行失败，继续下一题
                 rows.append({"id": case["id"], "type": case["type"], "mode": mode,
                              "question": case["q"], "error": f"{type(e).__name__}: {e}",
@@ -130,11 +137,15 @@ def summarize(rows: list[dict]) -> None:
 
 
 def main() -> None:
+    # 输出目录原先由 config 在 import 时创建；S2 起由各入口自己负责。
+    # S2 收尾：评测入口用自己的 Settings，不再读 config 的全局变量。
+    s = Settings.from_env()
+    s.out_dir.mkdir(parents=True, exist_ok=True)
     ap = argparse.ArgumentParser()
     ap.add_argument("--modes", nargs="*", default=["bm25", "hybrid"])
     ap.add_argument("--ids", nargs="*", default=None)
     ap.add_argument("--limit", type=int, default=None)
-    ap.add_argument("--out", default=str(config.OUT / "qa_results.json"))
+    ap.add_argument("--out", default=str(s.out_dir / "qa_results.json"))
     ap.add_argument("--merge", action="store_true",
                     help="把结果合并进已有 --out 文件（按 题号+策略 覆盖），用于补跑个别题")
     args = ap.parse_args()
@@ -147,7 +158,7 @@ def main() -> None:
 
     print(f"共 {len(cases)} 道题 × {len(args.modes)} 种策略 = {len(cases) * len(args.modes)} 次问答\n")
     out_path = Path(args.out)
-    rows = run(cases, args.modes, out_path=out_path, merge=args.merge)
+    rows = run(cases, args.modes, out_path=out_path, merge=args.merge, settings=s)
     summarize(rows)
 
     if args.merge and out_path.exists():

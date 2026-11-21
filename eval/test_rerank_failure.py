@@ -22,19 +22,19 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-import types
 from contextlib import contextmanager
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import requests                                    # noqa: E402
 
-import config                                      # noqa: E402
 import retrieval.reranker as rr                    # noqa: E402
 from main import ask                               # noqa: E402
 from retrieval.store import load_parents, load_units  # noqa: E402
+from settings import Settings                      # noqa: E402
 
 QUESTION = "Which parameter selects Positioning or Synchronization mode, and what are the corresponding option values?"
 
@@ -71,20 +71,21 @@ def _empty_200():
 
 @contextmanager
 def failing_rerank(post_fn):
-    """只替换 reranker 看到的 requests，不影响 generator 调 LLM。"""
-    shim = types.SimpleNamespace(
-        post=post_fn,
-        RequestException=requests.RequestException,
-        Timeout=requests.Timeout,
-        ConnectionError=requests.ConnectionError,
-    )
-    old_requests, old_retries = rr.requests, rr.RETRIES
-    rr.requests = shim
+    """把 `requests.post` 换掉，只影响本次调用。
+
+    为什么不再替换 `rr.requests`：第零步把 `import requests` 移进了
+    `reranker._post()` 内部（这样干净环境也能 import），模块上已经没有
+    `rr.requests` 这个属性了。这里改成 patch 全局 `requests.post`——
+    reranker 与 generator 共用同一个模块对象，但这套故障测试只跑 rerank，
+    不会真的去调 LLM，所以不会互相干扰。
+    """
+    old_retries = rr.RETRIES
     rr.RETRIES = 1                                 # 只跑 1 次重试，省时间
     try:
-        yield
+        with mock.patch("requests.post", post_fn):
+            yield
     finally:
-        rr.requests, rr.RETRIES = old_requests, old_retries
+        rr.RETRIES = old_retries
 
 
 CASES = [
@@ -130,22 +131,27 @@ def check(result: dict, candidates: list, parents: dict) -> dict:
 
 
 def main() -> None:
+    # 输出目录原先由 config 在 import 时创建；S2 起由各入口自己负责。
+    # S2 收尾：入口自己建 Settings，不再读 config 的全局变量。
+    s = Settings.from_env()
+    s.out_dir.mkdir(parents=True, exist_ok=True)
     ap = argparse.ArgumentParser()
     ap.add_argument("--modes", nargs="*", default=["bm25", "hybrid"])
     ap.add_argument("--cases", nargs="*", default=None,
                     help="只跑指定故障（normal/network/timeout/http_500/quota_429/empty_200）")
-    ap.add_argument("--out", default=str(config.OUT / "rerank_failure_test.json"))
+    ap.add_argument("--out", default=str(s.out_dir / "rerank_failure_test.json"))
     args = ap.parse_args()
 
     cases = [c for c in CASES if args.cases is None or c[0] in args.cases]
     run_normal = args.cases is None or "normal" in args.cases
 
-    parents, units = load_parents(), load_units()
+    parents = load_parents(parents_path=s.parents_path, docstore_path=s.docstore_path)
+    units = load_units(units_path=s.units_path)
     rows, all_ok = [], True
 
     # 先跑一次正常对照，确认降级测试没有污染正常流程
     for mode in (args.modes if run_normal else []):
-        result = ask(QUESTION, mode=mode, parents=parents, units=units)
+        result = ask(QUESTION, mode=mode, parents=parents, units=units, settings=s)
         info = check(result, result["candidates"], parents)
         normal_ok = (not info["degraded"]) and info["source_mapping_ok"] and info["answer_ok"]
         rows.append({"case": "normal", "mode": mode, "expect_degraded": False,
@@ -159,7 +165,7 @@ def main() -> None:
     for name, label, fn in cases:
         for mode in args.modes:
             with failing_rerank(fn):
-                result = ask(QUESTION, mode=mode, parents=parents, units=units)
+                result = ask(QUESTION, mode=mode, parents=parents, units=units, settings=s)
             info = check(result, result["candidates"], parents)
             ok = (info["degraded"] and info["order_preserved"] and info["source_mapping_ok"]
                   and info["answer_ok"] and info["citations_subset_of_picked"]

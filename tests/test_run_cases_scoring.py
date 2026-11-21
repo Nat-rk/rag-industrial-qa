@@ -25,7 +25,7 @@ TMP = Path(__file__).resolve().parent / "_tmp"
 def fake_ask(answer: str, cited_pages: list[int], picked_pages: list[int]):
     """构造一个假的 ask：picked/citations 的页码由参数指定。"""
 
-    def _ask(question, mode="bm25", retriever=None, parents=None, units=None):
+    def _ask(question, mode="bm25", retriever=None, parents=None, units=None, settings=None):
         picked = []
         for page in picked_pages:
             parent = next(p for p in make_parents().values() if p.page == page)
@@ -53,9 +53,9 @@ class TestRunScoring(unittest.TestCase):
         self.out.unlink(missing_ok=True)
 
     def run_cases_with(self, cases, answer, cited_pages, picked_pages):
-        with mock.patch.object(run_cases, "load_parents", lambda: make_parents()), \
-             mock.patch.object(run_cases, "load_units", lambda: []), \
-             mock.patch.object(run_cases, "build_retriever", lambda m, u: object()), \
+        with mock.patch.object(run_cases, "load_parents", lambda **kw: make_parents()), \
+             mock.patch.object(run_cases, "load_units", lambda **kw: []), \
+             mock.patch.object(run_cases, "build_retriever", lambda m, u, s=None: object()), \
              mock.patch.object(run_cases, "ask", fake_ask(answer, cited_pages, picked_pages)):
             with redirect_stdout(io.StringIO()):        # run() 会打印逐题行，测试里静音
                 rows = run_cases.run(cases, ["bm25"], out_path=self.out)
@@ -103,9 +103,9 @@ class TestRunScoring(unittest.TestCase):
                 raise RuntimeError("boom")
             return good(*a, **k)
 
-        with mock.patch.object(run_cases, "load_parents", lambda: make_parents()), \
-             mock.patch.object(run_cases, "load_units", lambda: []), \
-             mock.patch.object(run_cases, "build_retriever", lambda m, u: object()), \
+        with mock.patch.object(run_cases, "load_parents", lambda **kw: make_parents()), \
+             mock.patch.object(run_cases, "load_units", lambda **kw: []), \
+             mock.patch.object(run_cases, "build_retriever", lambda m, u, s=None: object()), \
              mock.patch.object(run_cases, "ask", flaky):
             with redirect_stdout(io.StringIO()):        # run() 会打印逐题行，测试里静音
                 rows = run_cases.run(cases, ["bm25"], out_path=self.out)

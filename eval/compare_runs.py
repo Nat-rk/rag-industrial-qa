@@ -19,7 +19,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-import config  # noqa: E402
+from settings import Settings  # noqa: E402
 
 
 def load(path: str) -> dict[tuple[str, str], dict]:
@@ -34,10 +34,14 @@ def flag(v) -> str:
 
 
 def main() -> None:
+    # 输出目录原先由 config 在 import 时创建；S2 起由各入口自己负责。
+    # S2 收尾：入口自己建 Settings，不再读 config 的全局变量。
+    s = Settings.from_env()
+    s.out_dir.mkdir(parents=True, exist_ok=True)
     ap = argparse.ArgumentParser()
-    ap.add_argument("--old", default=str(config.OUT / "qa_results.json"))
-    ap.add_argument("--new", default=str(config.OUT / "qa_results_v2.json"))
-    ap.add_argument("--out", default=str(config.OUT / "compare_v1_v2.json"))
+    ap.add_argument("--old", default=str(s.out_dir / "qa_results.json"))
+    ap.add_argument("--new", default=str(s.out_dir / "qa_results_v2.json"))
+    ap.add_argument("--out", default=str(s.out_dir / "compare_v1_v2.json"))
     args = ap.parse_args()
 
     old, new = load(args.old), load(args.new)
