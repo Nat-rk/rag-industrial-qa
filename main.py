@@ -13,7 +13,8 @@
 分工：
     main.py         解析 argv、建 Settings、配日志、打印、决定退出码（进程边界）
     qa/pipeline.py  真正的 8 步编排，接收显式 Settings，不读环境变量
-    settings.py     配置对象（唯一真源），config.py 只是它的别名层
+    settings.py     配置对象（唯一真源，S3 起 config.py 已删除）
+    api/            另一条入口：FastAPI 的 /ask 也走 qa/pipeline.py，不经过本文件
 """
 from __future__ import annotations
 

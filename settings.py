@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """运行配置：一个不可变的 Settings 实例，替代"import 即定型"的模块常量。
 
-为什么要有它（和 config.py 的区别）：
+为什么要有它（取代已删除的 config.py）：
     旧 `config.py` 是模块级常量：import 时就把 `OUT.mkdir()` 执行掉，全进程
     只有一份，测试想指向别的数据目录只能改环境变量再 reload；值写错（比如
     `DELIVER_K = "abc"`）也要等到用它的那一刻才炸。
@@ -11,8 +11,9 @@
       · 可以造多份（测试用临时目录、评测分别建 bm25 / hybrid 两个引擎）；
       · 不碰磁盘、不读全局状态，`from_env()` 是唯一的"环境变量入口"。
 
-    S1 阶段 `config.py` 会变成它的"别名层"（值全部来自这里），这样旧代码
-    一行不用改，而数字只写一份。S2 迁移完成后 config.py 即可删除。
+    现状（S3 起）：`config.py` 已删除，`Settings` 是唯一的配置真源；所有组件
+    通过参数接收需要的数值，不再 import 任何全局配置。密钥不在 Settings 里，
+    由 `retrieval/store.py` 的 `api_key()` 单独读取（见该函数说明）。
 
 新增环境变量（都有默认值，不设也能跑）：
     RAG_DATA_DIR        数据资产目录（默认 ../rag_design）

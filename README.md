@@ -1,11 +1,13 @@
-﻿# 基于 RAG 的工业设备知识助手
+# 基于 RAG 的工业设备知识助手
 
-项目状态：核心 RAG 问答与评测流程已完成，当前为单文档命令行版本。
+项目状态：核心 RAG 问答、评测与 HTTP 服务入口均已完成；当前为**单文档**版本，提供 CLI 与 FastAPI 两种入口（HTTP 层已在 S4 阶段六完成真实验收）。
 面向 Danfoss VLT® AutomationDrive FC 302 技术文档，构建基于 RAG 的工业设备知识问答系统，支持设备参数查询、功能解释与故障排查，并提供文件名和页码引用，方便用户回溯原始资料。对于资料不足的问题，系统按照拒答约束处理。
 
 回答里每个结论后面跟 `[Source n]`，n 对应到具体文件名与页码；资料里查不到时明确拒答，不靠模型自由发挥。
 
-> 这是一个**单文档、单轮问答**项目，附带一套基于固定测试集的批量评测能力；模型推理与重排序依赖智谱 API，**不属于可独立运行的离线推理系统**。能力边界写在「已实现 / 未实现」一节，请不要按 Web 服务或 Agent 的预期来读它。
+> 这是一个**单文档、单轮问答**项目，附带一套基于固定测试集的批量评测能力；模型推理与重排序依赖智谱 API，**不属于可独立运行的离线推理系统**。
+> HTTP 入口只做“把 `pipeline.run()` 包成 3 个接口”，固定**单进程、单 worker、单 Engine**，不面向公网、没有认证与限流。
+> 能力边界写在「已实现 / 未实现」一节，请不要按多用户 Web 服务或 Agent 的预期来读它。
 
 项目演示地址：https://www.bilibili.com/video/BV1MgWo6KEAX/?vd_source=326b9c922ec409b3f17224151543f18e
 ---
@@ -36,35 +38,58 @@
 | 上下文构建（带 `[Source n]`、文件名、页码、父块 ID） | `qa/context_builder.py` |
 | LLM 答案生成 + 拒答约束 | `qa/generator.py` |
 | 引用映射与越界编号检查 | `qa/citation.py` |
+| 启动初始化一次、多请求复用（`RagEngine`） | `service/engine.py` |
+| HTTP 服务：`/ask`、`/healthz`、`/readyz` | `api/`（`app.py` / `routes.py` / `schemas.py` / `errors.py`） |
+| 单进程内问答串行（应用级锁） | `api/routes.py` |
 | 批量问答评测（15 题 × 2 策略） | `eval/run_cases.py` |
 | 公开评测报告生成（脱敏 + 严格引用口径） | `eval/reports/build_public_report.py` |
-| 离线单元测试（118 项，不需要数据与 key，需先装依赖） | `tests/` |
+| 离线单元测试（156 项，不需要数据与 key，需先装依赖） | `tests/` |
 | Reranker 故障注入与降级验证 | `eval/test_rerank_failure.py`（需真实数据与 API） |
 
 **未实现（不要当成已有能力）**
 
-- 没有 FastAPI / Web 服务，只有命令行与交互模式
+- HTTP 层只有 3 个接口：没有认证、没有 CORS、没有限流、没有前端、没有 SSE/流式
+- 不支持多进程 / 多 worker（同一 `chroma_db` 目录只允许一个进程使用）
 - 没有多轮对话、没有会话记忆
 - 没有多文档管理，只挂 1 份手册
-- 没有 Agent、没有自动检索策略路由
-- 没有前端
+- 没有 Agent、没有自动检索策略路由（模式由启动配置决定）
 
 ---
 
 ## 3. 架构
 
-```
-问题 ──▶ 1 选策略 ──▶ 2 句子召回（两种策略只差这一步）
-                        A: BM25 召回 30 句
-                        B: Dense 50 句 + BM25 50 句 → RRF(k=60) → 取前 30 句
-                    ──▶ 3 句子去重成父块，不足 30 个就扩到 60/120/240
-                    ──▶ 4 rerank-pro 对 30 个父块重排 → 取前 10
-                    ──▶ 5 拼上下文（[Source n] + 文件 + 页码 + 父块 ID）
-                    ──▶ 6 LLM 生成（只依据上下文，查不到就拒答）
-                    ──▶ 7 解析 [Source n] → 文件名 + 页码 + 父块 ID
+两条入口，共用同一段业务代码：
+
+```text
+CLI：python main.py "问题" [bm25|hybrid]
+        │
+        ▼
+HTTP Client ──▶ FastAPI（api/app.py 的 create_app + lifespan）
+        │            ├─ 请求校验（api/schemas.py，失败 → 422）
+        │            ├─ 路由（api/routes.py：/ask、/healthz、/readyz）
+        │            └─ 异常映射（api/errors.py：503 / 500 / 422；502 映射保留）
+        ▼
+   RagEngine（仅 HTTP 路径；启动时 initialize 一次，之后复用）
+        ▼
+   qa/pipeline.py 的 run(question, settings=…)
 ```
 
-第 3–7 步两条链路**完全共用同一份代码**：`main.py` 的 `ask()` 是唯一的编排处。
+`pipeline.run()` 内部固定 8 步：
+
+```
+1 选策略 ──▶ 2 句子召回（两种策略只差这一步）
+                A: BM25 召回 30 句
+                B: Dense 50 句 + BM25 50 句 → RRF(k=60) → 取前 30 句
+          ──▶ 3 句子去重成父块，不足 30 个就扩到 60/120/240
+          ──▶ 4 rerank-pro 对 30 个父块重排 → 取前 10
+          ──▶ 5 拼上下文（[Source n] + 文件 + 页码 + 父块 ID）
+          ──▶ 6 LLM 生成（只依据上下文，查不到就拒答）
+          ──▶ 7 解析 [Source n] → 文件名 + 页码 + 父块 ID
+```
+
+第 3–7 步两条链路**完全共用同一份代码**。区别只在“谁来编排”：CLI 由 `main.py` 的 `ask()`
+直接调 `pipeline.run()`（每次启动重新加载数据与检索器）；HTTP 由 `api/routes.py` 调
+`RagEngine.ask()`（数据与检索器在启动时初始化一次，之后每个请求复用）。
 
 ---
 
@@ -72,11 +97,17 @@
 
 ```text
 .
-├── main.py                  # 入口：命令行 / 交互模式；只解析参数、配日志、打印
+├── main.py                  # CLI 入口：参数 / 交互 / 打印；只解析参数、配日志
 ├── qa/pipeline.py           # 8 步流程的真正实现：run(question, settings=...)
 ├── settings.py              # 配置对象 Settings：默认值、环境变量、构造即校验
 ├── errors.py                # 统一异常：ConfigError / DataError / LLMError / RerankError
 ├── logging_setup.py         # 日志一次配置 + trace_id（每次问答一个短 id）
+├── api/                     # HTTP 入口（S4）：只做协议转换，不碰检索与生成
+│   ├── app.py               # create_app(settings) + lifespan：建 Engine、关闭释放
+│   ├── main.py              # uvicorn 入口：api.main:app（--workers 1）
+│   ├── routes.py            # /ask /healthz /readyz；/ask 用应用级锁串行
+│   ├── schemas.py           # 请求/响应模型：AskRequest、AskResponse（14 键）
+│   └── errors.py            # 异常 → HTTP 状态码 + 统一错误外壳，不含业务逻辑
 ├── retrieval/
 │   ├── store.py             # 读 parents / units / docstore，补出 file_name
 │   ├── bm25.py              # 方案 A 的词面召回（本地 BM25，不调 API）
@@ -104,10 +135,12 @@
 │   ├── test_citation.py / test_context.py / test_backfill.py
 │   ├── test_rrf.py / test_bm25.py / test_rerank_degrade.py
 │   ├── test_pipeline.py / test_run_cases_scoring.py
-│   └── test_settings.py / test_errors.py / test_logging_setup.py
+│   ├── test_settings.py / test_errors.py / test_logging_setup.py
 │   ├── test_pipeline_module.py   # S2：Settings 注入、trace 恢复、patch 有效性
 │   ├── test_engine.py            # S3：初始化一次、资源复用、三状态生命周期
-│   └── test_dense_retriever.py   # S3：prewarm / close 的真实 Chroma 生命周期
+│   ├── test_dense_retriever.py   # S3：prewarm / close 的真实 Chroma 生命周期
+│   ├── test_api.py               # S4：应用生命周期（FakeEngine + mock api_key）
+│   └── test_api_routes.py        # S4：校验/响应/错误映射/串行化/约束断言
 ├── docs/
 │   ├── 架构与模块说明.md      # 每个模块解决什么问题、改哪里
 │   └── 验收报告.md           # 评测方法、指标口径、结果、限制
@@ -146,7 +179,7 @@ python eval/run_cases.py --ids Q04 N03 --modes bm25
 python eval/test_rerank_failure.py             # 故障注入（12 次）
 
 # 6. 离线自检（不需要数据、不需要 key、不联网——但依赖仍要先装好）
-python -m unittest discover -s tests -t .      # 118 项，约 10 秒（含真实 Chroma 用例）
+python -m unittest discover -s tests -t .      # 156 项，约 14 秒（含真实 Chroma 用例）
 python eval/reports/build_public_report.py     # 从已有结果重新生成公开报告
 ```
 
@@ -155,6 +188,81 @@ python eval/reports/build_public_report.py     # 从已有结果重新生成公�
 > 关于“离线”：指的是**不需要数据资产、不需要 API key、不联网**，不等于“不需要安装依赖”——
 > 先执行 `pip install -r requirements.txt`。没装依赖时 `unittest discover` 会出现
 > `ModuleNotFoundError`（例如缺 `requests` / `llama-index-*`），那是环境没准备好，不是测试失败。
+
+### 5.1 HTTP 服务（可选入口）
+
+前提同上：依赖已装、数据已放、`ZHIPU_API_KEY` 已配。
+
+```bash
+uvicorn api.main:app --host 127.0.0.1 --port 8000 --workers 1
+```
+
+- 默认只绑本机回环地址，`/docs` 本地可用，不面向公网。
+- **必须 `--workers 1`**：每个 worker 会各建一个 `RagEngine`、各开一次 `chroma_db`；同一数据目录不支持多进程共享。
+- 启动时 `initialize()` 一次（读 278 父块 + 1679 句 + 建检索器；实测 bm25 约 2 s、hybrid 约 4 s），之后请求复用同一个 Engine；关闭时 `engine.close()` 释放 Chroma 客户端。
+
+| 方法 | 路径 | 作用 | 就绪条件 |
+|---|---|---|---|
+| POST | `/ask` | 工业设备知识问答 | 仅 `ready` 时可用，否则 503 |
+| GET | `/healthz` | 存活检查（进程能响应就是 200） | 无 |
+| GET | `/readyz` | 就绪检查 | Engine `ready` 才 200，否则 503 `not_ready` |
+
+`/ask` 请求与响应（响应只展示关键字段，实际返回 14 键，与 `api/schemas.py` 一致）：
+
+```bash
+curl -s http://127.0.0.1:8000/ask -H "Content-Type: application/json" \
+  -d '{"question":"Which parameter selects Positioning or Synchronization mode?"}'
+```
+
+```json
+{
+  "question": "Which parameter selects Positioning or Synchronization mode?",
+  "mode": "bm25",
+  "answer": "参数 1-00 Configuration Mode 用于选择定位或同步模式，对应选项为 [9] Positioning 与 [10] Synchronization [Source 2]。",
+  "citations": [
+    {"n": 2, "file": "apply.pdf", "page": 8, "parent_id": "…", "short_id": "…", "section": "2.1 An Overview of IMC"}
+  ],
+  "citations_marked": true,
+  "invalid_citations": [],
+  "timing": {"build": 1.9, "recall": 0.01, "rerank": 1.3, "llm": 15.6}
+}
+```
+
+完整响应固定 14 个键（与 `api/schemas.py` 的 `AskResponse` 一一对应）：
+
+| 字段 | 含义 |
+|---|---|
+| `question` | 去掉首尾空白后的原始问题 |
+| `mode` | 本次实际使用的策略（`bm25` / `hybrid`，来自启动配置） |
+| `candidates` | 回填得到的候选父块（`parent` 为展开对象，含 `unit_text` / `score` / `rerank_score`） |
+| `trace` | 自适应回填的每一步：候选句子数、去重后的父块数 |
+| `picked` | 最终交付的父块（rerank 之后、按顺序取前 10） |
+| `rerank` | 是否降级、模型名、耗时、错误信息（正常时 `degraded=false`） |
+| `sources` | 上下文里每个 `[Source n]` 的元信息（n / 文件 / 页 / 父块 ID / 章节 / 字数） |
+| `context` | 实际拼给 LLM 的完整上下文文本（最长 24000 字） |
+| `answer` | 模型答案，行内带 `[Source n]` |
+| `usage` | LLM 的 token 用量（`prompt` / `completion`，缺失时为 `null`） |
+| `citations` | 解析后的引用列表（文件 / 页 / 父块 ID / 章节；**没有 `chars`**，与 `sources` 不同） |
+| `citations_marked` | 答案里是否出现了引用标记（布尔值，不是字符串） |
+| `invalid_citations` | 模型引用、但上下文里不存在的编号 |
+| `timing` | 各阶段耗时（`build` / `recall` / `rerank` / `llm`，秒） |
+
+错误响应（所有错误共用一个外壳）：
+```json
+{"error": {"code": "data_error", "message": "读取数据文件失败", "trace_id": "d22945d9"}}
+```
+
+```json
+{"error": {"code": "validation_error", "message": "question 不能为空", "trace_id": null}}
+```
+
+要点：
+
+- 问题长度 1–2000 字，空白会被拒绝（422）。
+- 检索模式由**启动时的** `RAG_RETRIEVAL_MODE` 决定；请求里传 `mode`/`top_k` 会被 422 拒绝（不按请求切换）。
+- 请求在单进程内**排队串行**：同一时刻只跑一个 `engine.ask()`；排队没有超时，慢请求会占住后面的请求。
+- 错误码：422 参数不合法、503 未就绪、500 数据或未预期错误（不返回堆栈）。**当前 `/ask` 不会返回 502**：LLM 失败被 `pipeline.run()` 捕获成 200 + 答案“（生成失败：…）”，rerank 失败降级成 200 + `rerank.degraded=true`；`api/errors.py` 仍保留 `LLMError`/`RerankError` → 502 的映射，供以后把错误上抛的路径使用。
+- 接口文档：启动后访问 http://127.0.0.1:8000/docs （Swagger UI）与 http://127.0.0.1:8000/redoc 。
 
 ---
 
@@ -222,7 +330,7 @@ export RAG_DATA_DIR=/path/to/your/data
 |---|---|---|---|
 | 历史评测（2026-11-06，15 题 × 2 策略） | `eval/reports/evaluation.md` / `.csv` / `.json` | 那一轮的检索、引用、拒答与耗时 | 当前代码在所有数据上的表现 |
 | 当前代码抽检（Q04 + Q20 × 2 策略，4 次） | 同上第 6 节 | 这 4 次的检索可复现（权威页 4/4 在交付里）；引用有运行间波动 | 30 行历史结果都来自当前 HEAD |
-| 离线单元测试（118 项，无网络/无 key，需先装依赖） | `tests/` | 引用解析、上下文编号与截断、去重与自适应扩展、RRF 公式、降级路径、评测打分逻辑、Engine 生命周期 | 真实召回质量与答案质量 |
+| 离线单元测试（156 项，无网络/无 key，需先装依赖） | `tests/` | 引用解析、上下文编号与截断、去重与自适应扩展、RRF 公式、降级路径、评测打分逻辑、Engine 生命周期、HTTP 接口行为（Fake Engine） | 真实召回质量、答案质量、真实 LLM/Chroma 的端到端行为 |
 - 本轮完整记录（30 行原始 JSON，含模型原文与手册章节标题）按约定**不随仓库发布**；可公开的脱敏版本见 [`eval/reports/evaluation.md`](eval/reports/evaluation.md)（同目录还有逐题明细 CSV 与生成脚本，指标可逐项重算）。
 
 指标口径、逐题结果与已知失败案例见 [`eval/reports/evaluation.md`](eval/reports/evaluation.md) 与 [`docs/验收报告.md`](docs/验收报告.md)。
@@ -249,8 +357,10 @@ export RAG_DATA_DIR=/path/to/your/data
 3. **引用到“父块/页”粒度**，不是句子级；同一页多块时页码相同、块不同。
 4. **答案质量受 LLM 影响**：`glm-4.5-flash` 免费够用，复杂参数表偶有串行（Q04 案例）。
 5. **相似表竞争**未根治：数值相同的不同场景表，rerank 分不开（Q20）。
-6. **无自动路由**：BM25 / Hybrid 靠 `config.RETRIEVAL_MODE` 手选。
+6. **无自动路由**：BM25 / Hybrid 靠启动时的 `RAG_RETRIEVAL_MODE` 手选，不按请求切换。
 7. **中文提问**会让 BM25 近乎失效（倒排是英文 token），只能用 Hybrid；这一点未做多语言查询改写。
+8. **HTTP 层是单进程的**：`--workers 1` + 进程内锁，排队没有超时；没有认证、CORS、限流，不适合直接暴露到公网。
+9. **真实 HTTP 端到端已在阶段六跑通**（2026-11-22）：真实 uvicorn + 真实 Engine + 真实 LLM，`POST /ask` 的 Q04 返回 200/14 键/36 s，拒答 N01 如实回答“没找到足够信息”；接口测试里的 Engine 仍是 Fake，不代表真实 RAG 质量；高并发与大响应耗时未验证。
 
 ---
 

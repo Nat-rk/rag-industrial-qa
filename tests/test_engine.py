@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """RagEngine 的离线测试：资源只加载一次、只构建一次、多次问答复用同一批对象。
 
-这里用桩检索器 + patch 掉数据加载与 pipeline.run，验证的是**所有权与调用次数**，
-不是检索质量；真实链路在 test_engine_smoke.py（需 key 与数据，手工跑）。
+这里用桩检索器 + patch 掉数据加载与 pipeline.build_retriever，验证的是
+**所有权与调用次数**，不是检索质量。真实链路（真实数据 + 真实检索器 + 真实
+LLM）没有常驻测试文件，按 S3 交付时的做法用一次性脚本手工跑，结果记在
+`project_docs/WORK_LOG.md` 的 S3 条目里。
 """
 from __future__ import annotations
 

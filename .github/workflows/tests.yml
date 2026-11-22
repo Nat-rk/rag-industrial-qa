@@ -1,8 +1,12 @@
 name: offline-tests
 
 # 为什么要有这个文件：
-#   README 里写了「47 项离线测试全绿」，但此前没有任何机器在每次提交时验证它。
+#   README 里写了「156 项离线测试全绿」，但此前没有任何机器在每次提交时验证它。
 #   这个 workflow 只做一件最小的事——装依赖、跑 unittest——用来证明那句话不是手写的。
+#
+# 历史原因（2026-11-22 修复）：S3 删除 config.py 后，下面的 import 冒烟仍停留在
+#   `import config`，CI 因此报 ModuleNotFoundError。现在列表只写「当前真实存在的模块」；
+#   以后改名/删模块时，请同步更新最后一步的 import 列表。
 #
 # 它不需要 ZHIPU_API_KEY，也不需要数据资产（chroma_db / parents.json / units.json）：
 # 测试用 tests/fixtures/ 里的虚构语料，外部依赖（LLM、rerank）都被 mock 掉了。
@@ -40,4 +44,4 @@ jobs:
 
       - name: Import smoke test (no data, no key)
         run: |
-          python -c "import config, main, retrieval.bm25, retrieval.hybrid, retrieval.reranker, qa.generator; print('imports ok')"
+          python -c "import settings, errors, logging_setup, main, qa.pipeline, service.engine, retrieval.bm25, retrieval.hybrid, retrieval.reranker, qa.generator, api.main; print('imports ok')"
