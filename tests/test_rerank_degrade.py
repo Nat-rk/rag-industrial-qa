@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """rerank 降级路径的离线测试（retrieval/reranker.py）。
 
 **这里验证的是「降级逻辑正确」**：
@@ -14,6 +14,9 @@ import retrieval.reranker as reranker
 from retrieval.reranker import RerankError, rerank_candidates
 from tests import make_candidates
 
+MODEL = 'rerank-pro'
+BASE = 'https://example.invalid/api'
+
 
 class TestRerankDegrade(unittest.TestCase):
     def test_error_falls_back_to_original_order(self):
@@ -23,7 +26,7 @@ class TestRerankDegrade(unittest.TestCase):
             raise RerankError("重试 3 次仍失败：Timeout")
 
         with mock.patch.object(reranker, "rerank_documents", boom):
-            picked, info = rerank_candidates("q", candidates, top_k=3)
+            picked, info = rerank_candidates("q", candidates, 3, model=MODEL, api_base=BASE)
 
         self.assertEqual([c["parent"].id for c in picked],
                          [c["parent"].id for c in candidates[:3]])   # 原顺序前 3 个
@@ -33,7 +36,7 @@ class TestRerankDegrade(unittest.TestCase):
     def test_any_exception_is_caught(self):
         # 不只 RerankError：接口返回怪格式时抛 ValueError 也不能让问答中断
         with mock.patch.object(reranker, "rerank_documents", side_effect=ValueError("bad json")):
-            picked, info = rerank_candidates("q", make_candidates(), top_k=2)
+            picked, info = rerank_candidates("q", make_candidates(), 2, model=MODEL, api_base=BASE)
         self.assertTrue(info["degraded"])
         self.assertEqual(len(picked), 2)
 
@@ -45,7 +48,7 @@ class TestRerankDegrade(unittest.TestCase):
             return [2, 0, 1], [0.9, 0.5, 0.1], {"total_tokens": 10}, 0.12
 
         with mock.patch.object(reranker, "rerank_documents", fake):
-            picked, info = rerank_candidates("q", candidates, top_k=2)
+            picked, info = rerank_candidates("q", candidates, 2, model=MODEL, api_base=BASE)
 
         self.assertFalse(info["degraded"])
         self.assertEqual([c["parent"].id for c in picked],
@@ -53,7 +56,7 @@ class TestRerankDegrade(unittest.TestCase):
         self.assertAlmostEqual(picked[0]["rerank_score"], 0.9)
 
     def test_empty_candidates(self):
-        picked, info = rerank_candidates("q", [], top_k=10)
+        picked, info = rerank_candidates("q", [], 10, model=MODEL, api_base=BASE)
         self.assertEqual(picked, [])
         self.assertFalse(info["degraded"])
         self.assertEqual(info["error"], "无候选")

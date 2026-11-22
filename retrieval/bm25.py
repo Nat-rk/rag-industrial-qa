@@ -6,7 +6,6 @@ Hybrid 融合时才能按 unit_id 对齐。
 """
 from __future__ import annotations
 
-import config
 from retrieval.backfill import Hit
 
 
@@ -41,15 +40,14 @@ class BM25UnitRetriever:
 
     name = "bm25"
 
-    def __init__(self, units: list[dict], *, extra_stopwords=None,
-                 index_size: int | None = None):
-        # extra_stopwords / index_size 由调用方（pipeline 传 Settings 里的值）决定；
-        # 不传则退回 config（迁移期兼容，S3 后统一用 Settings）。
+    def __init__(self, units: list[dict], *, extra_stopwords: tuple[str, ...],
+                 index_size: int):
+        # 两个参数必填：由 pipeline 从 Settings 传入（停用词、最大候选数）。
         from bm25s.tokenization import STOPWORDS_EN
         from llama_index.retrievers.bm25 import BM25Retriever
 
-        words = config.EXTRA_STOPWORDS if extra_stopwords is None else extra_stopwords
-        size = max(config.STEPS) if index_size is None else index_size
+        words = extra_stopwords
+        size = index_size
 
         self.by_id = {u["id"]: u for u in units}
         self.language = sorted(set(STOPWORDS_EN) | set(words))

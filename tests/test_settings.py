@@ -1,38 +1,38 @@
 # -*- coding: utf-8 -*-
-"""Settings 的离线测试：环境变量解析、校验、不可变性、与 config 的一致性。
+"""Settings 的离线测试：环境变量解析、校验、不可变性、历史默认值。
 
 这里验证的是「配置层本身」：
-  · 默认值必须和改造成 config.py 之前完全一致（否则 47 项测试与历史评测都会漂移）；
+  · 默认值必须和 S1 之前的 config.py 完全一致（否则 95 项测试与历史评测都会漂移）；
   · 非法输入必须在构造时就抛 ConfigError，而不是等到请求时才炸；
   · Settings 不可变，换模式/换目录要返回新对象。
+S3 起 config.py 已删除，默认值只写在 settings.py 一处，所以这里直接断言数字。
 """
 from __future__ import annotations
 
 import unittest
 from pathlib import Path
 
-import config
 from errors import ConfigError
 from settings import Settings
 
 
 class TestSettingsDefaults(unittest.TestCase):
     def test_defaults_match_legacy_config(self):
-        """config.py 现在是 Settings 的别名层，两边必须逐项相等。"""
+        """这些值就是历史评测跑出来的那套配置，改任何一个都必须重跑基线。"""
         s = Settings.from_env({})
-        self.assertEqual(config.COLLECTION, s.collection)
-        self.assertEqual(config.RETRIEVAL_MODE, s.retrieval_mode)
-        self.assertEqual(config.STEPS, s.steps)
-        self.assertEqual(config.BACKFILL_TARGET, s.backfill_target)
-        self.assertEqual(config.DELIVER_K, s.deliver_k)
-        self.assertEqual(config.RRF_K, s.rrf_k)
-        self.assertEqual(config.RRF_SIDE, s.rrf_side)
-        self.assertEqual(config.LLM_MODEL, s.llm_model)
-        self.assertEqual(config.LLM_TIMEOUT, s.llm_timeout)
-        self.assertEqual(config.LLM_TEMPERATURE, s.llm_temperature)
-        self.assertEqual(list(config.EXTRA_STOPWORDS), list(s.extra_stopwords))
-        self.assertEqual(config.CONTEXT_PARENT_MAX_CHARS, s.context_parent_max_chars)
-        self.assertEqual(config.CONTEXT_TOTAL_MAX_CHARS, s.context_total_max_chars)
+        self.assertEqual(s.collection, "dense_sentences_v1")
+        self.assertEqual(s.retrieval_mode, "bm25")
+        self.assertEqual(s.steps, (30, 60, 120, 240))
+        self.assertEqual(s.backfill_target, 30)
+        self.assertEqual(s.deliver_k, 10)
+        self.assertEqual(s.rrf_k, 60)
+        self.assertEqual(s.rrf_side, 50)
+        self.assertEqual(s.llm_model, "glm-4.5-flash")
+        self.assertEqual(s.llm_timeout, 120)
+        self.assertEqual(len(s.extra_stopwords), 12)
+        self.assertIn("what", s.extra_stopwords)
+        self.assertEqual(s.context_parent_max_chars, 2600)
+        self.assertEqual(s.context_total_max_chars, 24000)
 
     def test_default_numbers(self):
         s = Settings.from_env({})

@@ -9,17 +9,15 @@
 """
 from __future__ import annotations
 
-import config
 
-
-def build_context(candidates: list[dict], *, parent_max_chars: int | None = None,
-                  total_max_chars: int | None = None):
+def build_context(candidates: list[dict], *, parent_max_chars: int,
+                  total_max_chars: int):
     """返回 (上下文文本, 来源列表)。来源列表顺序与 [Source n] 一一对应。
 
-    两个上限由 pipeline 从 Settings 传入；不传则退回 config（过渡期兼容）。
+    两个上限必填：pipeline 从 Settings 传进来，组件不自己读全局配置。
     """
-    cap_one = config.CONTEXT_PARENT_MAX_CHARS if parent_max_chars is None else parent_max_chars
-    cap_all = config.CONTEXT_TOTAL_MAX_CHARS if total_max_chars is None else total_max_chars
+    cap_one = parent_max_chars
+    cap_all = total_max_chars
     sources, blocks, total = [], [], 0
 
     for i, c in enumerate(candidates, start=1):

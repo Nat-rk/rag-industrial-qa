@@ -2,21 +2,28 @@
 """上下文构建的离线测试（qa/context_builder.py）。
 
 重点验证三件事：编号与来源一一对应、单块超长会截断、总量到顶会丢后面的块。
+S3 起两个上限必须由调用方显式传入（组件不再读全局配置），这里从 Settings 取默认值。
 """
 from __future__ import annotations
 
 import unittest
-from unittest import mock
 
-import config
 from qa.context_builder import build_context
+from settings import Settings
 from tests import make_candidates, make_parents
+
+
+def caps() -> dict:
+    """Settings 里的默认上限，当作"正常配置"传给 build_context。"""
+    s = Settings()
+    return {"parent_max_chars": s.context_parent_max_chars,
+            "total_max_chars": s.context_total_max_chars}
 
 
 class TestBuildContext(unittest.TestCase):
     def test_source_numbering_matches_blocks(self):
         candidates = make_candidates()          # fixture 里 4 个父块
-        context, sources = build_context(candidates)
+        context, sources = build_context(candidates, **caps())
 
         self.assertEqual(len(sources), len(candidates))
         for i, s in enumerate(sources, start=1):
@@ -24,7 +31,7 @@ class TestBuildContext(unittest.TestCase):
             self.assertIn(f"[Source {i}]", context)
 
     def test_block_carries_file_page_and_id(self):
-        context, sources = build_context(make_candidates())
+        context, sources = build_context(make_candidates(), **caps())
         self.assertIn("File: sample_drive_manual.pdf", context)
         self.assertIn("Page: 3", context)
         self.assertIn("Parent ID: pa01", context)
@@ -33,10 +40,11 @@ class TestBuildContext(unittest.TestCase):
     def test_long_parent_is_truncated(self):
         parents = make_parents()
         long_parent = parents["pa01"]
-        long_parent.text = "长" * (config.CONTEXT_PARENT_MAX_CHARS + 200)
+        long_parent.text = "长" * 400
 
-        with mock.patch.object(config, "CONTEXT_PARENT_MAX_CHARS", 200):
-            context, sources = build_context([{"parent": long_parent, "score": 1.0}])
+        context, sources = build_context(
+            [{"parent": long_parent, "score": 1.0}],
+            parent_max_chars=200, total_max_chars=24000)
 
         self.assertIn("（本块过长，已截断）", context)
         # sources 记录的是截断后（含省略标记）的长度，只要求它远小于原文
@@ -46,8 +54,8 @@ class TestBuildContext(unittest.TestCase):
     def test_total_budget_drops_later_blocks(self):
         candidates = make_candidates()
         # 上限设得放不下第二块：只应该留下第一个块
-        with mock.patch.object(config, "CONTEXT_TOTAL_MAX_CHARS", 600):
-            context, sources = build_context(candidates)
+        context, sources = build_context(candidates, parent_max_chars=2600,
+                                         total_max_chars=600)
 
         self.assertEqual(len(sources), 1)
         self.assertEqual(sources[0]["n"], 1)
@@ -55,7 +63,7 @@ class TestBuildContext(unittest.TestCase):
         self.assertNotIn("[Source 2]", context)
 
     def test_empty_candidates(self):
-        context, sources = build_context([])
+        context, sources = build_context([], **caps())
         self.assertEqual(sources, [])
         self.assertIn("没有检索到任何相关文档片段", context)
 

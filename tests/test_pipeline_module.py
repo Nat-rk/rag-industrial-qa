@@ -24,7 +24,11 @@ from tests import make_parents, make_units
 from tests.test_pipeline import StubLLM, StubRetriever, hits_for
 
 PIPELINE_SRC = Path(pipeline.__file__).read_text(encoding="utf-8")
-CONFIG_SRC = (Path(main.__file__).parent / "config.py").read_text(encoding="utf-8")
+ROOT = Path(main.__file__).parent
+PRODUCTION_FILES = [ROOT / "main.py", ROOT / "settings.py", ROOT / "errors.py",
+                    ROOT / "logging_setup.py"] + sorted((ROOT / "qa").glob("*.py")) \
+                   + sorted((ROOT / "retrieval").glob("*.py")) \
+                   + sorted((ROOT / "service").glob("*.py"))
 
 
 def _imported_roots(src: str) -> set[str]:
@@ -166,8 +170,17 @@ class TestPipelineContract(unittest.TestCase):
         self.assertNotIn("os", mods)            # 也就没法偷偷读环境变量
         self.assertNotIn("dotenv", mods)
 
-    def test_config_has_no_mkdir_side_effect(self):
-        self.assertFalse(_calls_mkdir(CONFIG_SRC))
+    def test_config_module_is_gone(self):
+        """S3 之后 config.py 已删除：配置只有 settings.py 一处真源。"""
+        self.assertFalse((ROOT / "config.py").exists())
+
+    def test_no_production_module_imports_config(self):
+        offenders = []
+        for path in PRODUCTION_FILES:
+            mods = _imported_roots(path.read_text(encoding="utf-8"))
+            if "config" in mods:
+                offenders.append(path.name)
+        self.assertEqual(offenders, [])
 
 
 class TestMainStillPatchable(unittest.TestCase):

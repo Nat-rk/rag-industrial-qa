@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import time
 
-import config
 from errors import LLMError
 from retrieval.store import api_key
 
@@ -54,17 +53,11 @@ SYSTEM_PROMPT = """你是工业变频器/伺服设备的技术支持工程师，
 
 
 def answer(question: str, context: str, sources: list[dict], *,
-           model: str | None = None, temperature: float | None = None,
-           api_base: str | None = None, timeout: float | None = None):
+           model: str, temperature: float, api_base: str, timeout: float):
     """调 LLM；返回 (回答文本, 用量, 耗时)。失败抛 LLMError（RuntimeError 子类），由 main 决定怎么处理。
 
-    四个可选参数由 pipeline 从 Settings 传入；不传则退回 config（过渡期兼容）。
+    四个参数必填：由 pipeline 从 Settings 传入，组件不再读全局配置。
     """
-    model = config.LLM_MODEL if model is None else model
-    temperature = config.LLM_TEMPERATURE if temperature is None else temperature
-    api_base = config.API_BASE if api_base is None else api_base
-    timeout = config.LLM_TIMEOUT if timeout is None else timeout
-
     user_prompt = (
         f"【文档片段】\n{context}\n\n"
         f"【问题】\n{question}\n\n"

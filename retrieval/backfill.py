@@ -14,7 +14,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import config
 from retrieval.store import Parent
 
 
@@ -47,10 +46,12 @@ def dedupe_by_parent(hits: list[Hit], parents: dict[str, Parent]) -> list[dict]:
     return delivered
 
 
-def adaptive_backfill(fetch, parents: dict[str, Parent],
-                      target: int = config.BACKFILL_TARGET,
-                      steps: tuple[int, ...] = config.STEPS):
-    """fetch(n) 返回前 n 个句子的命中；返回 (父块列表, 每轮轨迹)。"""
+def adaptive_backfill(fetch, parents: dict[str, Parent], *,
+                      target: int, steps: tuple[int, ...]):
+    """fetch(n) 返回前 n 个句子的命中；返回 (父块列表, 每轮轨迹)。
+
+    target / steps 由调用方（pipeline，从 Settings 取）显式传入。
+    """
     trace, delivered, prev_n = [], [], 0
     for n in steps:
         hits = fetch(n)

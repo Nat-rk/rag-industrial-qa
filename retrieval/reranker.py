@@ -13,10 +13,11 @@ import json
 import time
 from dataclasses import dataclass, field
 
-import config
 from errors import ConfigError, RerankError
 from retrieval.store import api_key
 
+# 这三个是"组件内部常量"：不属于部署配置，改它们要改代码并重测，
+# 所以留在模块里，不进 Settings。
 MAX_DOCS = 60
 TIMEOUT = 120
 RETRIES = 3
@@ -36,13 +37,13 @@ class RerankOutcome:
     error: str | None = None
 
 
-def _post(payload: dict, headers: dict, api_base: str | None = None) -> dict:
+def _post(payload: dict, headers: dict, *, api_base: str) -> dict:
     # requests 放在函数内导入：这样 `import retrieval.reranker` 在没装依赖的
     # 环境里也能成功——离线单测（tests/test_pipeline.py）才不需要先 pip install
     # 才能跑，失败信息也会落在真正调用它的地方，而不是一导入就报 ModuleNotFoundError。
     import requests
 
-    base = config.API_BASE if api_base is None else api_base
+    base = api_base
     last = None
     for attempt in range(1, RETRIES + 1):
         try:
@@ -62,13 +63,13 @@ def _post(payload: dict, headers: dict, api_base: str | None = None) -> dict:
 
 
 def rerank_documents(query: str, documents: list[str], top_n: int | None = None, *,
-                     model: str | None = None, api_base: str | None = None):
+                     model: str, api_base: str):
     """调用 rerank-pro，返回 (按相关性排序的下标, 分数, usage, 耗时)。
 
-    model / api_base 由调用方传入（pipeline 传 Settings）；不传退回 config。
+    model / api_base 必填：由 pipeline 从 Settings 传入，组件不再读全局配置。
     """
     payload = {
-        "model": config.RERANK_MODEL if model is None else model,
+        "model": model,
         "query": query,
         "documents": documents[:MAX_DOCS],
     }
@@ -77,7 +78,7 @@ def rerank_documents(query: str, documents: list[str], top_n: int | None = None,
     headers = {"Authorization": f"Bearer {api_key()}", "Content-Type": "application/json"}
 
     t0 = time.time()
-    data = _post(payload, headers, api_base)
+    data = _post(payload, headers, api_base=api_base)
     elapsed = time.time() - t0
 
     results = data.get("results") or []
@@ -103,15 +104,13 @@ def rerank_documents(query: str, documents: list[str], top_n: int | None = None,
     return order, scores, data.get("usage", {}), elapsed
 
 
-def rerank_candidates(question: str, candidates: list[dict], top_k: int | None = None, *,
-                      model: str | None = None, api_base: str | None = None):
+def rerank_candidates(question: str, candidates: list[dict], top_k: int, *,
+                      model: str, api_base: str):
     """对候选父块重排；返回 (前 top_k 个候选, 元信息)。
 
     元信息里 degraded=True 表示接口失败、用的是原顺序——调用方必须如实展示。
-    top_k 不传时取 config.DELIVER_K（过渡期兼容）；pipeline 会显式传 Settings 的值。
+    top_k / model / api_base 都必填，由 pipeline 从 Settings 取。
     """
-    if top_k is None:
-        top_k = config.DELIVER_K
     if not candidates:
         return [], {"degraded": False, "elapsed": 0.0, "error": "无候选"}
 

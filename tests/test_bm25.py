@@ -30,8 +30,15 @@ from tests import make_units
 class TestBM25UnitRetriever(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        from settings import Settings
+
+        s = Settings()
         cls.units = make_units()
-        cls.retriever = BM25UnitRetriever(cls.units)
+        cls.retriever = BM25UnitRetriever(
+            cls.units,
+            extra_stopwords=s.extra_stopwords,
+            index_size=max(s.steps),
+        )
 
     def test_unique_term_hits_expected_unit(self):
         hits = self.retriever.retrieve("overcurrent alarm A13", 5)

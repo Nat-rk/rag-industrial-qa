@@ -13,7 +13,6 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-import config
 from errors import ConfigError, DataError
 
 
@@ -55,9 +54,9 @@ def _load_json(path: Path):
         ) from e
 
 
-def _docstore_metadata(path: Path | None = None) -> dict[str, dict]:
+def _docstore_metadata(path: Path) -> dict[str, dict]:
     """docstore.json 的结构是 {"docstore/data": {node_id: {"__data__": {...}}}}。"""
-    src = path or config.DOCSTORE
+    src = path
     raw = _load_json(src)
     data = raw.get("docstore/data") or raw.get("docstore", {}).get("data") or {}
     out = {}
@@ -74,16 +73,15 @@ def _docstore_metadata(path: Path | None = None) -> dict[str, dict]:
     return out
 
 
-def load_parents(*, parents_path: Path | None = None,
-                 docstore_path: Path | None = None) -> dict[str, Parent]:
+def load_parents(*, parents_path: Path, docstore_path: Path) -> dict[str, Parent]:
     """读 278 个父块；file_name 从 docstore 补。
 
-    参数都是可选的：不传就用 config 里的旧默认值（迁移期兼容），
-    pipeline 则显式传 Settings 里的路径。
+    S3 起路径必填：调用方（pipeline / Engine / 评测）都从 Settings 拿到路径再显式传，
+    组件自己不再 import config 兜底。
     """
     meta = _docstore_metadata(docstore_path)
     parents: dict[str, Parent] = {}
-    for item in _load_json(parents_path or config.PARENTS):
+    for item in _load_json(parents_path):
         m = meta.get(item["id"], {})
         parents[item["id"]] = Parent(
             id=item["id"],
@@ -97,9 +95,9 @@ def load_parents(*, parents_path: Path | None = None,
     return parents
 
 
-def load_units(*, units_path: Path | None = None) -> list[dict]:
+def load_units(*, units_path: Path) -> list[dict]:
     """句子级检索单元：id / parent_id / page / junk / chars / text。"""
-    return _load_json(units_path or config.UNITS)
+    return _load_json(units_path)
 
 
 def api_key() -> str:

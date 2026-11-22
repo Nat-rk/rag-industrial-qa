@@ -8,8 +8,6 @@
 > 这是一个**单文档、单轮问答**项目，附带一套基于固定测试集的批量评测能力；模型推理与重排序依赖智谱 API，**不属于可独立运行的离线推理系统**。能力边界写在「已实现 / 未实现」一节，请不要按 Web 服务或 Agent 的预期来读它。
 
 项目演示地址：https://www.bilibili.com/video/BV1MgWo6KEAX/?vd_source=326b9c922ec409b3f17224151543f18e
-<img width="1252" height="649" alt="image" src="https://github.com/user-attachments/assets/afe7203a-5f28-4969-877c-ba01393e3669" />
-
 ---
 
 ## 1. 解决什么问题
@@ -31,7 +29,7 @@
 | 能力 | 位置 |
 |---|---|
 | 句子级检索 + 父块回填 | `retrieval/backfill.py` |
-| BM25 关键词检索（使用 bm25s 内置英文停用词，并额外过滤 12 个语法词） | `retrieval/bm25.py` |
+| BM25 关键词检索（含 12 个语法停用词） | `retrieval/bm25.py` |
 | Dense 向量检索 | `retrieval/hybrid.py` |
 | Hybrid 混合检索 + RRF 融合 | `retrieval/hybrid.py` |
 | Reranker 重排序，失败自动降级 | `retrieval/reranker.py` |
@@ -40,7 +38,7 @@
 | 引用映射与越界编号检查 | `qa/citation.py` |
 | 批量问答评测（15 题 × 2 策略） | `eval/run_cases.py` |
 | 公开评测报告生成（脱敏 + 严格引用口径） | `eval/reports/build_public_report.py` |
-| 离线单元测试（95 项，不需要数据与 key，需先装依赖） | `tests/` |
+| 离线单元测试（118 项，不需要数据与 key，需先装依赖） | `tests/` |
 | Reranker 故障注入与降级验证 | `eval/test_rerank_failure.py`（需真实数据与 API） |
 
 **未实现（不要当成已有能力）**
@@ -77,7 +75,6 @@
 ├── main.py                  # 入口：命令行 / 交互模式；只解析参数、配日志、打印
 ├── qa/pipeline.py           # 8 步流程的真正实现：run(question, settings=...)
 ├── settings.py              # 配置对象 Settings：默认值、环境变量、构造即校验
-├── config.py                # 过渡别名层：值全部来自 Settings（S2 后删除）
 ├── errors.py                # 统一异常：ConfigError / DataError / LLMError / RerankError
 ├── logging_setup.py         # 日志一次配置 + trace_id（每次问答一个短 id）
 ├── retrieval/
@@ -90,6 +87,8 @@
 │   ├── context_builder.py   # 父块 → 带编号的上下文，超长按名次截断
 │   ├── generator.py         # Prompt 约束 + LLM 调用
 │   └── citation.py          # 引用解析、越界检查、来源表格式化
+├── service/
+│   └── engine.py            # RagEngine：启动时加载一次数据与检索器，多次问答复用
 ├── eval/
 │   ├── qa_cases.json        # 15 道验收题：12 道有答案 + 3 道资料不足
 │   ├── run_cases.py         # 批量问答，逐题落盘，可断点续跑
@@ -106,7 +105,9 @@
 │   ├── test_rrf.py / test_bm25.py / test_rerank_degrade.py
 │   ├── test_pipeline.py / test_run_cases_scoring.py
 │   └── test_settings.py / test_errors.py / test_logging_setup.py
-│   └── test_pipeline_module.py   # S2：Settings 注入、trace 恢复、patch 有效性
+│   ├── test_pipeline_module.py   # S2：Settings 注入、trace 恢复、patch 有效性
+│   ├── test_engine.py            # S3：初始化一次、资源复用、三状态生命周期
+│   └── test_dense_retriever.py   # S3：prewarm / close 的真实 Chroma 生命周期
 ├── docs/
 │   ├── 架构与模块说明.md      # 每个模块解决什么问题、改哪里
 │   └── 验收报告.md           # 评测方法、指标口径、结果、限制
@@ -145,7 +146,7 @@ python eval/run_cases.py --ids Q04 N03 --modes bm25
 python eval/test_rerank_failure.py             # 故障注入（12 次）
 
 # 6. 离线自检（不需要数据、不需要 key、不联网——但依赖仍要先装好）
-python -m unittest discover -s tests -t .      # 95 项，约 2 秒
+python -m unittest discover -s tests -t .      # 118 项，约 10 秒（含真实 Chroma 用例）
 python eval/reports/build_public_report.py     # 从已有结果重新生成公开报告
 ```
 
@@ -188,7 +189,7 @@ python eval/reports/build_public_report.py     # 从已有结果重新生成公�
 2. 按父块切句产出 `units.json`，并用相同规则构建 `docstore.json` 的 metadata；
 3. 用同一个 embedding 模型（`embedding-3`，1024 维）写入 Chroma 集合 `dense_sentences_v1`。
 
-数据目录的解析逻辑只有 `config.py` 一处，可用环境变量覆盖：
+数据目录的解析逻辑只有 `settings.py` 一处（`Settings.from_env()`），可用环境变量覆盖：
 
 ```bash
 export RAG_DATA_DIR=/path/to/your/data
@@ -221,7 +222,7 @@ export RAG_DATA_DIR=/path/to/your/data
 |---|---|---|---|
 | 历史评测（2026-11-06，15 题 × 2 策略） | `eval/reports/evaluation.md` / `.csv` / `.json` | 那一轮的检索、引用、拒答与耗时 | 当前代码在所有数据上的表现 |
 | 当前代码抽检（Q04 + Q20 × 2 策略，4 次） | 同上第 6 节 | 这 4 次的检索可复现（权威页 4/4 在交付里）；引用有运行间波动 | 30 行历史结果都来自当前 HEAD |
-| 离线单元测试（95 项，无网络/无 key，需先装依赖） | `tests/` | 引用解析、上下文编号与截断、去重与自适应扩展、RRF 公式、降级路径、评测打分逻辑 | 真实召回质量与答案质量 |
+| 离线单元测试（118 项，无网络/无 key，需先装依赖） | `tests/` | 引用解析、上下文编号与截断、去重与自适应扩展、RRF 公式、降级路径、评测打分逻辑、Engine 生命周期 | 真实召回质量与答案质量 |
 - 本轮完整记录（30 行原始 JSON，含模型原文与手册章节标题）按约定**不随仓库发布**；可公开的脱敏版本见 [`eval/reports/evaluation.md`](eval/reports/evaluation.md)（同目录还有逐题明细 CSV 与生成脚本，指标可逐项重算）。
 
 指标口径、逐题结果与已知失败案例见 [`eval/reports/evaluation.md`](eval/reports/evaluation.md) 与 [`docs/验收报告.md`](docs/验收报告.md)。

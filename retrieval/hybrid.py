@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import hashlib
 
-import config
 from retrieval.backfill import Hit
 from retrieval.bm25 import BM25UnitRetriever
 from retrieval.store import api_key
@@ -20,31 +19,75 @@ class DenseRetriever:
 
     name = "dense"
 
-    def __init__(self, units: list[dict], *, chroma_dir=None, collection: str | None = None,
-                 embed_model: str | None = None, api_base: str | None = None):
-        # 四个参数都由 pipeline 从 Settings 传进来；不传则退回 config（过渡期兼容）。
+    def __init__(self, units: list[dict], *, chroma_dir, collection: str,
+                 embed_model: str, api_base: str):
+        # 四个参数都必填：由 pipeline 从 Settings 传入，组件不再 import config。
         self.by_id = {u["id"]: u for u in units}
-        self._chroma_dir = chroma_dir if chroma_dir is not None else config.CHROMA
-        self._collection = collection if collection is not None else config.COLLECTION
-        self._embed_model = embed_model if embed_model is not None else config.EMBED_MODEL
-        self._api_base = api_base if api_base is not None else config.API_BASE
+        self._chroma_dir = chroma_dir
+        self._collection = collection
+        self._embed_model = embed_model
+        self._api_base = api_base
         self._qvec_cache: dict[str, list[float]] = {}
         self._coll = None
         self._embed = None
+        # S3：把 client 也存下来，Engine 才能显式关闭它（以前是 _init 的局部变量）
+        self._client = None
+        self._closed = False
 
-    def _init(self):
+    def _check_open(self) -> None:
+        if self._closed:
+            raise RuntimeError("DenseRetriever 已关闭，不能再使用")
+
+    def prewarm(self) -> None:
+        """提前连上 Chroma、建好 embedding 客户端。
+
+        由 Engine.initialize() 调用：把"第一次提问才连库"的延迟提前到启动阶段，
+        这样"检索器只构建一次"才是真的；缺 key / 缺库也会在启动时就暴露。
+        """
+        self._check_open()
+        self._init()
+
+    def close(self) -> None:
+        """关闭本对象打开的 Chroma client；重复调用安全。
+
+        注意只关"自己创建的" client：chromadb 按路径缓存 System，同一路径的
+        另一个 Engine 若还活着，会被一起停掉——所以约定"一个数据目录一个 Engine"。
+        """
+        if self._closed:
+            return
+        self._closed = True
+        client, self._client = self._client, None
+        self._coll = None
+        self._embed = None
+        self._qvec_cache.clear()
+        if client is not None:
+            client.close()
+
+    def _init(self) -> None:
+        self._check_open()
         if self._coll is not None:
             return
         import chromadb
         from llama_index.embeddings.zhipuai import ZhipuAIEmbedding
 
-        self._embed = ZhipuAIEmbedding(
+        embed = ZhipuAIEmbedding(
             model=self._embed_model,
             api_key=api_key(),
             api_base=self._api_base,
         )
-        client = chromadb.PersistentClient(path=str(self._chroma_dir))
-        self._coll = client.get_collection(self._collection)
+        client = None
+        try:
+            client = chromadb.PersistentClient(path=str(self._chroma_dir))
+            coll = client.get_collection(self._collection)
+        except Exception:
+            # 打开失败：把刚建好的半成品关掉，再原样抛出原异常
+            if client is not None:
+                try:
+                    client.close()
+                except Exception:
+                    pass
+            raise
+        self._embed, self._client, self._coll = embed, client, coll
 
     def _vector(self, qtext: str) -> list[float]:
         key = hashlib.sha1(qtext.encode("utf-8")).hexdigest()
@@ -79,10 +122,18 @@ class HybridRetriever:
     name = "hybrid"
 
     def __init__(self, dense: DenseRetriever, bm25: BM25UnitRetriever,
-                 *, k: int | None = None, side: int | None = None):
+                 *, k: int, side: int):
         self.dense, self.bm25 = dense, bm25
-        self.k = config.RRF_K if k is None else k
-        self.base_side = config.RRF_SIDE if side is None else side
+        self.k = k
+        self.base_side = side
+
+    def prewarm(self) -> None:
+        """转发给 Dense 一侧：BM25 在构造时已经建好索引，只有 Dense 需要预热。"""
+        self.dense.prewarm()
+
+    def close(self) -> None:
+        """转发给 Dense 一侧：BM25 没有需要释放的外部资源。"""
+        self.dense.close()
 
     def retrieve(self, qtext: str, n: int) -> list[Hit]:
         side = self.base_side if n <= self.base_side else n
